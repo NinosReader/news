@@ -352,17 +352,29 @@
             width: 70px;
             height: 70px;
             border-radius: 50%;
-            background: linear-gradient(135deg, 
-                rgba(255, 220, 150, 0.95) 0%, 
-                rgba(255, 200, 100, 0.9) 100%);
-            border: 3px solid #4b5563;
+            background: linear-gradient(145deg, #c0c0c0 0%, #e8e8e8 50%, #ffffff 100%);
+            border: 4px solid #9ca3af;
             display: flex;
             align-items: center;
             justify-content: center;
             box-shadow: 
-                0 0 25px rgba(255, 200, 100, 0.5),
-                inset 0 2px 5px rgba(255,255,255,0.4);
+                0 4px 15px rgba(0,0,0,0.4),
+                inset 0 2px 5px rgba(255,255,255,0.5),
+                inset 0 -2px 5px rgba(0,0,0,0.2);
             position: relative;
+        }
+
+        .clock-window::before {
+            content: '';
+            position: absolute;
+            inset: 8px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 35%, 
+                rgba(255,255,255,0.8) 0%,
+                rgba(230,230,230,0.4) 30%,
+                rgba(180,180,180,0.2) 60%,
+                transparent 100%);
+            pointer-events: none;
         }
 
         .clock-face {
@@ -372,6 +384,21 @@
             align-items: center;
             justify-content: center;
             position: relative;
+            background: radial-gradient(circle at 40% 40%, 
+                #f8f8f8 0%,
+                #e0e0e0 40%,
+                #c8c8c8 100%);
+            border-radius: 50%;
+            border: 2px solid #b0b0b0;
+        }
+
+        .clock-face::after {
+            content: '';
+            position: absolute;
+            inset: 4px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.4);
+            pointer-events: none;
         }
 
         .clock-hand {
@@ -383,38 +410,62 @@
         }
 
         .hour-hand {
-            width: 3px;
-            height: 18px;
-            margin-left: -1.5px;
+            width: 4px;
+            height: 16px;
+            margin-left: -2px;
             bottom: 50%;
+            background: linear-gradient(to right, #0a0a0a 0%, #2a2a2a 50%, #0a0a0a 100%);
+            clip-path: polygon(30% 0%, 70% 0%, 100% 100%, 0% 100%);
+            box-shadow: 0 0 3px rgba(0,0,0,0.5);
         }
 
         .minute-hand {
-            width: 2px;
-            height: 24px;
-            margin-left: -1px;
+            width: 3px;
+            height: 22px;
+            margin-left: -1.5px;
             bottom: 50%;
+            background: linear-gradient(to right, #0a0a0a 0%, #2a2a2a 50%, #0a0a0a 100%);
+            clip-path: polygon(20% 0%, 80% 0%, 100% 100%, 0% 100%);
+            box-shadow: 0 0 3px rgba(0,0,0,0.5);
         }
 
         .second-hand {
-            width: 1px;
-            height: 26px;
-            margin-left: -0.5px;
+            width: 2px;
+            height: 22px;
+            margin-left: -1px;
             bottom: 50%;
-            background: #dc2626;
+            background: linear-gradient(to bottom, #c41e3a 0%, #a01828 100%);
+            box-shadow: 0 0 2px rgba(196, 30, 58, 0.5);
+            border-radius: 1px;
         }
 
         .clock-center {
-            width: 6px;
-            height: 6px;
-            background: #0f172a;
+            width: 8px;
+            height: 8px;
+            background: radial-gradient(circle, #1a1a1a 0%, #3a3a3a 100%);
             border-radius: 50%;
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             z-index: 2;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+            border: 1px solid #555;
         }
+
+        .clock-numeral {
+            position: absolute;
+            font-size: 0.4rem;
+            font-weight: 700;
+            color: #2c2c2c;
+            font-family: 'Times New Roman', Georgia, serif;
+            text-shadow: 0 1px 1px rgba(255,255,255,0.5);
+        }
+
+        .numeral-12 { top: 6px; left: 50%; transform: translateX(-50%); }
+        .numeral-3 { right: 6px; top: 50%; transform: translateY(-50%); }
+        .numeral-6 { bottom: 6px; left: 50%; transform: translateX(-50%); }
+        .numeral-9 { left: 6px; top: 50%; transform: translateY(-50%); }
 
         .balcony {
             position: absolute;
@@ -478,7 +529,7 @@
     <div class="container">
         <div class="header">
             <h1>Global News Tower</h1>
-            <p>Click any lit window to explore news from around the world</p>
+            <p>Click any lit window to explore news from a multipolar world</p>
         </div>
 
         <div class="building-wrapper">
@@ -487,6 +538,10 @@
             <div class="setback">
                 <div class="clock-window">
                     <div class="clock-face">
+                        <div class="clock-numeral numeral-12">XII</div>
+                        <div class="clock-numeral numeral-3">III</div>
+                        <div class="clock-numeral numeral-6">VI</div>
+                        <div class="clock-numeral numeral-9">IX</div>
                         <div class="clock-hand hour-hand" id="hourHand"></div>
                         <div class="clock-hand minute-hand" id="minuteHand"></div>
                         <div class="clock-hand second-hand" id="secondHand"></div>
@@ -618,15 +673,13 @@
             starsContainer.appendChild(star);
         }
 
-        // Update clock to show EST
+        // Update clock to show visitor's local time
         function updateClock() {
             const now = new Date();
-            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-            const estTime = new Date(utc + (3600000 * -5));
             
-            const hours = estTime.getHours() % 12;
-            const minutes = estTime.getMinutes();
-            const seconds = estTime.getSeconds();
+            const hours = now.getHours() % 12;
+            const minutes = now.getMinutes();
+            const seconds = now.getSeconds();
             
             const hourDeg = (hours * 30) + (minutes * 0.5);
             const minuteDeg = minutes * 6;
