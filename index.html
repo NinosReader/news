@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global News Tower</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            overflow-x: hidden;
+            background: linear-gradient(to bottom, #0a1929 0%, #1a2332 50%, #2d3748 100%);
+            min-height: 100vh;
+            position: relative;
+        }
+
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        .container {
+            max-width: 100%;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            padding: 20px;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .building-wrapper {
+            max-width: 600px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .spire {
+            width: 60px;
+            height: 80px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .spire::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 30px solid transparent;
+            border-right: 30px solid transparent;
+            border-bottom: 50px solid #6b7280;
+            filter: brightness(0.7);
+        }
+
+        .spire::after {
+            content: '';
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 30px;
+            background: linear-gradient(to bottom, #9ca3af 0%, #6b7280 100%);
+            box-shadow: 0 0 10px rgba(156, 163, 175, 0.5);
+        }
+
+        .building {
+            background: linear-gradient(to right, 
+                #6b7280 0%, 
+                #9ca3af 15%, 
+                #d1d5db 50%, 
+                #9ca3af 85%, 
+                #6b7280 100%);
+            border-radius: 0;
+            padding: 30px 20px 20px;
+            box-shadow: 
+                0 0 80px rgba(0,0,0,0.6),
+                inset 0 2px 0 rgba(255,255,255,0.1),
+                inset 0 -2px 0 rgba(0,0,0,0.2);
+            position: relative;
+            border: 3px solid #4b5563;
+        }
+
+        .building::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 10%;
+            right: 10%;
+            height: 3px;
+            background: linear-gradient(to right, 
+                transparent 0%, 
+                rgba(107, 114, 128, 0.5) 50%, 
+                transparent 100%);
+        }
+
+        .art-deco-detail {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            height: 15px;
+            background: linear-gradient(to bottom, #4b5563 0%, #374151 100%);
+            clip-path: polygon(0 100%, 10% 0, 90% 0, 100% 100%);
+        }
+
+        .floor {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            margin-bottom: 15px;
+            padding: 0 10px;
+        }
+
+        .window {
+            aspect-ratio: 0.75;
+            background: #1a1f2e;
+            border-radius: 0;
+            border: 2px solid #4b5563;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 
+                inset 0 0 10px rgba(0,0,0,0.5),
+                0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .window.empty {
+            background: #0d1117;
+            border-color: #374151;
+            cursor: default;
+            opacity: 0.5;
+        }
+
+        .window.active {
+            cursor: pointer;
+            background: #1a2332;
+        }
+
+        .window.active::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 40% 30%, rgba(120, 190, 255, 0.2), transparent 60%);
+        }
+
+        .window-light {
+            position: absolute;
+            inset: 3px;
+            background: linear-gradient(135deg, 
+                rgba(160, 210, 255, 0.95) 0%, 
+                rgba(100, 170, 240, 0.9) 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            color: #0f172a;
+            text-align: center;
+            padding: 6px 4px;
+            transition: all 0.3s ease;
+            box-shadow: 
+                0 0 20px rgba(120, 190, 255, 0.4),
+                inset 0 1px 2px rgba(255,255,255,0.4);
+        }
+
+        .window.active:hover {
+            transform: scale(1.05);
+            z-index: 10;
+            border-color: #60a5fa;
+        }
+
+        .window.active:hover .window-light {
+            background: linear-gradient(135deg, 
+                rgba(200, 230, 255, 1) 0%, 
+                rgba(140, 200, 255, 1) 100%);
+            box-shadow: 
+                0 0 30px rgba(120, 190, 255, 0.7),
+                inset 0 1px 3px rgba(255,255,255,0.6);
+        }
+
+
+
+        .news-flag {
+            font-size: 1.3rem;
+            line-height: 1;
+        }
+
+        .news-name {
+            font-size: 0.6rem;
+            line-height: 1.1;
+            font-weight: 700;
+        }
+
+        .news-country {
+            font-size: 0.45rem;
+            opacity: 0.7;
+            font-weight: 500;
+        }
+
+        .tooltip {
+            position: absolute;
+            bottom: 110%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.95);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            z-index: 100;
+            border: 1px solid #60a5fa;
+        }
+
+        .window.active:hover .tooltip {
+            opacity: 1;
+        }
+
+        .ground {
+            height: 40px;
+            background: linear-gradient(to bottom, 
+                #4b5563 0%, 
+                #374151 50%, 
+                #1f2937 100%);
+            margin-top: 0;
+            box-shadow: 
+                0 10px 40px rgba(0,0,0,0.7),
+                inset 0 2px 5px rgba(0,0,0,0.5);
+            border: 3px solid #374151;
+            border-top: none;
+        }
+
+        .road {
+            height: 60px;
+            background: linear-gradient(to bottom, 
+                #1f2937 0%,
+                #111827 50%,
+                #0f172a 100%);
+            position: relative;
+            margin-top: 0;
+            box-shadow: 
+                inset 0 4px 8px rgba(0,0,0,0.5),
+                0 2px 10px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .footer {
+            position: relative;
+            z-index: 1;
+            padding: 0 20px;
+        }
+
+        .footer a {
+            color: #fbbf24;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 400;
+            transition: all 0.3s;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            background: rgba(15, 23, 42, 0.8);
+            padding: 8px 16px;
+            border-radius: 6px;
+            display: inline-block;
+        }
+
+        .footer a:hover {
+            color: #fde047;
+            text-decoration: none;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+        }
+
+        .setback {
+            position: relative;
+            background: linear-gradient(to right, 
+                #6b7280 0%, 
+                #9ca3af 50%, 
+                #6b7280 100%);
+            margin: 0 auto;
+            max-width: 60%;
+            padding: 20px 10px;
+            box-shadow: 
+                0 -5px 20px rgba(0,0,0,0.4),
+                inset 0 1px 0 rgba(255,255,255,0.1);
+            border-left: 3px solid #4b5563;
+            border-right: 3px solid #4b5563;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100px;
+        }
+
+        .clock-window {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, 
+                rgba(255, 220, 150, 0.95) 0%, 
+                rgba(255, 200, 100, 0.9) 100%);
+            border: 3px solid #4b5563;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 
+                0 0 25px rgba(255, 200, 100, 0.5),
+                inset 0 2px 5px rgba(255,255,255,0.4);
+            position: relative;
+        }
+
+        .clock-face {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .clock-hand {
+            position: absolute;
+            background: #0f172a;
+            transform-origin: bottom center;
+            border-radius: 2px;
+            left: 50%;
+        }
+
+        .hour-hand {
+            width: 3px;
+            height: 18px;
+            margin-left: -1.5px;
+            bottom: 50%;
+        }
+
+        .minute-hand {
+            width: 2px;
+            height: 24px;
+            margin-left: -1px;
+            bottom: 50%;
+        }
+
+        .second-hand {
+            width: 1px;
+            height: 26px;
+            margin-left: -0.5px;
+            bottom: 50%;
+            background: #dc2626;
+        }
+
+        .clock-center {
+            width: 6px;
+            height: 6px;
+            background: #0f172a;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+        }
+
+        .balcony {
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: linear-gradient(to bottom, #6b7280 0%, #4b5563 100%);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .floor {
+                gap: 10px;
+                padding: 0 5px;
+            }
+
+            .building {
+                padding: 25px 10px 15px;
+            }
+
+            .setback {
+                padding: 15px 8px;
+            }
+
+            .clock-window {
+                width: 60px;
+                height: 60px;
+            }
+
+            .news-flag {
+                font-size: 1.1rem;
+            }
+
+            .news-name {
+                font-size: 0.55rem;
+            }
+
+            .news-country {
+                font-size: 0.4rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>Global News Tower</h1>
+            <p>Click any lit window to explore news from around the world</p>
+        </div>
+
+        <div class="building-wrapper">
+            <div class="spire"></div>
+            
+            <div class="setback">
+                <div class="clock-window">
+                    <div class="clock-face">
+                        <div class="clock-hand hour-hand" id="hourHand"></div>
+                        <div class="clock-hand minute-hand" id="minuteHand"></div>
+                        <div class="clock-hand second-hand" id="secondHand"></div>
+                        <div class="clock-center"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="building">
+                <div class="art-deco-detail"></div>
+
+                <div class="floor">
+                    <div class="window empty"></div>
+                    <div class="window active" onclick="openNews('https://www.washingtonpost.com')">
+                        <div class="window-light">
+                            <div class="news-flag">🇺🇸</div>
+                            <div class="news-name">Wash Post</div>
+                            <div class="news-country">USA</div>
+                        </div>
+                        <div class="tooltip">Washington Post - USA</div>
+                    </div>
+                    <div class="window active" onclick="openNews('https://www.bbc.com/news')">
+                        <div class="window-light">
+                            <div class="news-flag">🇬🇧</div>
+                            <div class="news-name">BBC</div>
+                            <div class="news-country">UK</div>
+                        </div>
+                        <div class="tooltip">BBC News - United Kingdom</div>
+                    </div>
+                    <div class="window active" onclick="openNews('https://www.themoscowtimes.com')">
+                        <div class="window-light">
+                            <div class="news-flag">🇷🇺</div>
+                            <div class="news-name">Moscow Times</div>
+                            <div class="news-country">Russia</div>
+                        </div>
+                        <div class="tooltip">The Moscow Times - Russia</div>
+                    </div>
+                    <div class="window empty"></div>
+                </div>
+
+                <div class="floor">
+                    <div class="window empty"></div>
+                    <div class="window active" onclick="openNews('https://www.cnn.com')">
+                        <div class="window-light">
+                            <div class="news-flag">🇺🇸</div>
+                            <div class="news-name">CNN</div>
+                            <div class="news-country">USA</div>
+                        </div>
+                        <div class="tooltip">CNN - USA</div>
+                    </div>
+                    <div class="window active" onclick="openNews('https://www.france24.com/en/')">
+                        <div class="window-light">
+                            <div class="news-flag">🇫🇷</div>
+                            <div class="news-name">France 24</div>
+                            <div class="news-country">France</div>
+                        </div>
+                        <div class="tooltip">France 24 - France</div>
+                    </div>
+                    <div class="window active" onclick="openNews('https://www.scmp.com')">
+                        <div class="window-light">
+                            <div class="news-flag">🇨🇳</div>
+                            <div class="news-name">SCMP</div>
+                            <div class="news-country">China</div>
+                        </div>
+                        <div class="tooltip">South China Morning Post</div>
+                    </div>
+                    <div class="window empty"></div>
+                </div>
+
+                <div class="floor">
+                    <div class="window empty"></div>
+                    <div class="window active" onclick="openNews('https://www.elpais.com/en')">
+                        <div class="window-light">
+                            <div class="news-flag">🇪🇸</div>
+                            <div class="news-name">El País</div>
+                            <div class="news-country">Spain</div>
+                        </div>
+                        <div class="tooltip">El País - Spain</div>
+                    </div>
+                    <div class="window active" onclick="openNews('https://www.theguardian.com/international')">
+                        <div class="window-light">
+                            <div class="news-flag">🇬🇧</div>
+                            <div class="news-name">Guardian</div>
+                            <div class="news-country">UK</div>
+                        </div>
+                        <div class="tooltip">The Guardian - UK</div>
+                    </div>
+                    <div class="window active" onclick="openNews('https://www.aljazeera.com')">
+                        <div class="window-light">
+                            <div class="news-flag">🌍</div>
+                            <div class="news-name">Al Jazeera</div>
+                            <div class="news-country">Middle East</div>
+                        </div>
+                        <div class="tooltip">Al Jazeera - Middle East</div>
+                    </div>
+                    <div class="window empty"></div>
+                </div>
+
+                <div class="balcony"></div>
+            </div>
+
+            <div class="ground"></div>
+        </div>
+
+        <div class="road">
+            <div class="footer">
+                <a href="https://ninosreader.github.io/index/" target="_blank">📄 Read articles without paywalls</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Create stars
+        const starsContainer = document.getElementById('stars');
+        for (let i = 0; i < 100; i++) {
+            const star = document.createElement('div');
+            star.className = 'star';
+            star.style.width = Math.random() * 2 + 1 + 'px';
+            star.style.height = star.style.width;
+            star.style.left = Math.random() * 100 + '%';
+            star.style.top = Math.random() * 100 + '%';
+            star.style.animationDelay = Math.random() * 3 + 's';
+            starsContainer.appendChild(star);
+        }
+
+        // Update clock to show EST
+        function updateClock() {
+            const now = new Date();
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            const estTime = new Date(utc + (3600000 * -5));
+            
+            const hours = estTime.getHours() % 12;
+            const minutes = estTime.getMinutes();
+            const seconds = estTime.getSeconds();
+            
+            const hourDeg = (hours * 30) + (minutes * 0.5);
+            const minuteDeg = minutes * 6;
+            const secondDeg = seconds * 6;
+            
+            const hourHand = document.getElementById('hourHand');
+            const minuteHand = document.getElementById('minuteHand');
+            const secondHand = document.getElementById('secondHand');
+            
+            if (hourHand) hourHand.style.transform = `rotate(${hourDeg}deg)`;
+            if (minuteHand) minuteHand.style.transform = `rotate(${minuteDeg}deg)`;
+            if (secondHand) secondHand.style.transform = `rotate(${secondDeg}deg)`;
+        }
+
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        function openNews(url) {
+            window.open(url, '_blank');
+        }
+    </script>
+</body>
+</html>
