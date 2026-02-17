@@ -52,7 +52,6 @@
             content:''; position: absolute; top: -30px; left: 50%; transform: translateX(-50%);
             width: 2px; height: 30px; background: linear-gradient(to top, var(--edge), transparent);
         }
-        /* Flashing red dot removed */
 
         /* Section headers inside building */
         .section-label {
@@ -82,8 +81,9 @@
 
         .paper img {
             width: 100%; height: 100%; object-fit: cover; object-position: top center;
-            display: block;
+            display: block; opacity: 0; transition: opacity .35s ease;
         }
+        .paper img.loaded { opacity: 1; }
 
         .paper .shimmer {
             position: absolute; inset: 0;
@@ -91,7 +91,7 @@
             background-size: 200% 100%;
             animation: shimmer 1.5s ease-in-out infinite;
         }
-        .paper .shimmer.done { opacity: 0; transition: opacity .2s; pointer-events: none; }
+        .paper .shimmer.done { opacity: 0; transition: opacity .3s; pointer-events: none; }
         @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
         .paper .label {
@@ -117,6 +117,13 @@
         }
         @keyframes dots {
             0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; }
+        }
+
+        /* Progress counter */
+        .progress-msg {
+            text-align: center; padding: 10px 20px 16px; color: rgba(255,255,255,.5);
+            font-size: 11px; letter-spacing: .03em;
+            transition: opacity .3s;
         }
 
         .foot { text-align: center; margin-top: 22px; }
@@ -189,7 +196,6 @@
     <div class="foot">
         <p>Click any front page to expand · Hover for name</p>
         <a href="https://ninosreader.github.io/index/" target="_blank">📄 Read articles without paywalls</a>
-
     </div>
     <div class="copy">© Global News Tower</div>
 </div>
@@ -303,28 +309,31 @@ function parseDetailHTML(html) {
     return best;
 }
 
-// Preload an image and return a promise that resolves with the URL
-function preloadImage(url) {
-    return new Promise(function(resolve, reject) {
-        var img = new Image();
-        img.onload = function() { resolve(url); };
-        img.onerror = function() { reject(url); };
-        img.src = url;
-    });
-}
-
-// Build one card (image already preloaded, show immediately)
-function buildCard(slug, imgUrl, paperInfo, delay) {
+// Build one card with shimmer placeholder; image fades in when loaded
+function buildCard(slug, imgUrl, paperInfo) {
     var card = document.createElement('div');
     card.className = 'paper';
-    card.style.animationDelay = (delay * 0.04) + 's';
+
+    var shimmer = document.createElement('div');
+    shimmer.className = 'shimmer';
+    card.appendChild(shimmer);
 
     var img = document.createElement('img');
     img.alt = paperInfo.name;
     img.loading = 'eager';
     img.decoding = 'async';
     img.fetchPriority = 'high';
-    img.src = imgUrl;
+
+    img.onload = function() {
+        img.classList.add('loaded');
+        shimmer.classList.add('done');
+    };
+    img.onerror = function() {
+        card.classList.add('hidden');
+    };
+
+    // Don't set src yet — we'll trigger it when it's this card's turn
+    img._pendingSrc = imgUrl;
     card.appendChild(img);
 
     var label = document.createElement('div');
@@ -337,6 +346,35 @@ function buildCard(slug, imgUrl, paperInfo, delay) {
     });
 
     return card;
+}
+
+// Load a single card's image and return a promise that resolves when done
+function loadCardImage(card) {
+    return new Promise(function(resolve) {
+        var img = card.querySelector('img');
+        if (!img || !img._pendingSrc) { resolve(); return; }
+
+        var done = false;
+        function finish() {
+            if (done) return;
+            done = true;
+            resolve();
+        }
+
+        img.onload = function() {
+            img.classList.add('loaded');
+            var shimmer = card.querySelector('.shimmer');
+            if (shimmer) shimmer.classList.add('done');
+            finish();
+        };
+        img.onerror = function() {
+            card.classList.add('hidden');
+            finish();
+        };
+
+        img.src = img._pendingSrc;
+        delete img._pendingSrc;
+    });
 }
 
 // Modal
@@ -386,13 +424,13 @@ async function init() {
         'haaretz': ['haaretz', 'ha-aretz'],
         'the-times-of-india': ['the-times-of-india', 'times-of-india'],
         'the-sydney-morning-herald': ['the-sydney-morning-herald', 'sydney-morning-herald'],
+        'the-wall-street-journal': ['the-wall-street-journal', 'wall-street-journal', 'wsj'],
     };
 
     // Match papers to discovered images
     var sections = {};
     var matchCount = 0;
     var slugKeys = Object.keys(PAPERS);
-    var allImageUrls = [];
 
     slugKeys.forEach(function(slug) {
         var paper = PAPERS[slug];
@@ -412,14 +450,10 @@ async function init() {
 
         if (!sections[paper.section]) sections[paper.section] = [];
         sections[paper.section].push({ slug: slug, imgUrl: imgUrl, info: paper });
-        allImageUrls.push(imgUrl);
         matchCount++;
     });
 
-    // Preload all images concurrently for fastest possible display
-    await Promise.allSettled(allImageUrls.map(preloadImage));
-
-    // Clear loading
+    // Clear loading message
     loadingMsg.remove();
 
     if (matchCount === 0) {
@@ -427,9 +461,10 @@ async function init() {
         return;
     }
 
-    // Render sections
+    // Build all section labels, grids, and cards into the DOM immediately (with shimmer placeholders)
+    // Then load images one at a time so each card pops in sequentially
     var sectionOrder = ['United States', 'United Kingdom & Europe', 'Asia & World'];
-    var cardIndex = 0;
+    var allCards = [];
 
     sectionOrder.forEach(function(sectionName) {
         var papers = sections[sectionName];
@@ -444,13 +479,29 @@ async function init() {
         grid.className = 'grid';
 
         papers.forEach(function(p) {
-            var card = buildCard(p.slug, p.imgUrl, p.info, cardIndex);
+            var card = buildCard(p.slug, p.imgUrl, p.info);
             grid.appendChild(card);
-            cardIndex++;
+            allCards.push(card);
         });
 
         building.appendChild(grid);
     });
+
+    // Add a progress indicator at the bottom of the building
+    var progressMsg = document.createElement('div');
+    progressMsg.className = 'progress-msg';
+    progressMsg.textContent = 'Loading front pages: 0 / ' + allCards.length;
+    building.appendChild(progressMsg);
+
+    // Load images one at a time sequentially
+    for (var i = 0; i < allCards.length; i++) {
+        progressMsg.textContent = 'Loading front pages: ' + (i + 1) + ' / ' + allCards.length;
+        await loadCardImage(allCards[i]);
+    }
+
+    // Remove progress message when done
+    progressMsg.style.opacity = '0';
+    setTimeout(function() { progressMsg.remove(); }, 300);
 }
 
 init();
