@@ -120,15 +120,59 @@
             transition: opacity .3s;
         }
 
-        .foot { text-align: center; margin-top: 22px; }
+        /* ── Large Nino's News Reader Button ── */
+        .foot { text-align: center; margin-top: 28px; }
         .foot p { font-size: 10px; color: #fff; letter-spacing: .04em; }
-        .foot a {
-            display: inline-block; margin-top: 12px;
-            color: #fff; text-decoration: none; font-size: 13px;
-            background: rgba(21,26,40,.8); padding: 8px 18px; border-radius: 5px;
-            border: 1px solid var(--edge); transition: all .3s;
+        .nino-btn {
+            display: block;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 22px 32px;
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(18px, 3vw, 26px);
+            font-weight: 900;
+            color: #fff;
+            text-decoration: none;
+            text-align: center;
+            letter-spacing: .04em;
+            background: linear-gradient(135deg, #1a2038 0%, #232b48 40%, #1a2038 100%);
+            border: 2px solid var(--gold-dim);
+            border-radius: 12px;
+            box-shadow: 0 0 40px rgba(212,191,106,.12), 0 8px 32px rgba(0,0,0,.5),
+                        inset 0 1px 0 rgba(255,255,255,.06);
+            transition: all .35s cubic-bezier(.16,1,.3,1);
+            position: relative;
+            overflow: hidden;
         }
-        .foot a:hover { background: #fff; color: var(--night); border-color: #fff; }
+        .nino-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, transparent 0%, rgba(212,191,106,.06) 50%, transparent 100%);
+            opacity: 0;
+            transition: opacity .35s;
+        }
+        .nino-btn:hover {
+            transform: translateY(-3px) scale(1.02);
+            border-color: var(--gold);
+            box-shadow: 0 0 60px rgba(212,191,106,.25), 0 12px 48px rgba(0,0,0,.6),
+                        inset 0 1px 0 rgba(255,255,255,.1);
+            color: var(--gold);
+        }
+        .nino-btn:hover::before { opacity: 1; }
+        .nino-btn:active { transform: translateY(-1px) scale(1.01); }
+        .nino-btn .btn-sub {
+            display: block;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 12px;
+            font-weight: 400;
+            color: rgba(255,255,255,.5);
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            margin-top: 6px;
+        }
+        .nino-btn:hover .btn-sub { color: rgba(212,191,106,.6); }
 
         .copy { text-align: center; font-size: 10px; color: rgba(255,255,255,.5); margin-top: 20px; }
 
@@ -168,6 +212,7 @@
         @media (max-width:600px) {
             .grid { gap: 8px; }
             .building { padding: 18px 10px 22px; }
+            .nino-btn { padding: 18px 20px; }
         }
     </style>
 </head>
@@ -186,9 +231,12 @@
     </div>
 
     <div class="foot">
-        <a href="https://ninosreader.github.io/index/" target="_blank">Nino's News Reader (circumvent paywalls)</a>
+        <a class="nino-btn" href="https://ninosreader.github.io/index/" target="_blank">
+            Nino's News Reader
+            <span class="btn-sub">Circumvent Paywalls &mdash; Read Freely</span>
+        </a>
     </div>
-    <div class="copy">© Nino's Global News Tower</div>
+    <div class="copy">&copy; Nino's Global News Tower</div>
 </div>
 
 <div class="modal-bg" id="modalBg">
@@ -196,8 +244,8 @@
         <div class="modal-top">
             <span class="title" id="mTitle"></span>
             <div class="actions">
-                <a id="mLink" href="#" target="_blank">Visit Site ↗</a>
-                <button id="mClose">✕</button>
+                <a id="mLink" href="#" target="_blank">Visit Site &#8599;</a>
+                <button id="mClose">&#10005;</button>
             </div>
         </div>
         <div class="modal-body" id="mBody"></div>
@@ -317,7 +365,7 @@ document.getElementById('dateStr').textContent =
     var pm = document.createElement('div');
     pm.className = 'progress-msg';
     pm.id = 'progressMsg';
-    pm.textContent = 'Fetching front pages…';
+    pm.textContent = 'Loading front pages…';
     building.appendChild(pm);
 })();
 
@@ -334,6 +382,7 @@ document.getElementById('modalBg').addEventListener('click', function(e) { if (e
 document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeModal(); });
 
 // ── Network helpers ─────────────────────────────────────────────────
+// Try to fetch a URL through multiple CORS proxies
 async function fetchWithProxy(url) {
     for (var i = 0; i < PROXIES.length; i++) {
         try {
@@ -344,109 +393,119 @@ async function fetchWithProxy(url) {
     return null;
 }
 
-function parseListingHTML(html) {
-    var map = {};
-    var doc = new DOMParser().parseFromString(html, 'text/html');
-    doc.querySelectorAll('a[href]').forEach(function(a) {
-        var href = a.getAttribute('href');
-        if (!href || !href.match(/^\/[a-z]/)) return;
-        var slug = href.replace(/^\/|\/$/g, '');
-        var img = a.querySelector('img[src*="/t/"]');
-        if (img) {
-            var src = img.getAttribute('src');
-            if (src && src.startsWith('/t/')) map[slug] = BASE + src;
-        }
-    });
-    return map;
+// Try to load an image through CORS proxies, returning the first working blob URL
+async function loadImageViaProxy(url) {
+    for (var i = 0; i < PROXIES.length; i++) {
+        try {
+            var resp = await fetch(PROXIES[i] + encodeURIComponent(url));
+            if (resp.ok) {
+                var ct = resp.headers.get('content-type') || '';
+                if (ct.indexOf('image') !== -1) {
+                    var blob = await resp.blob();
+                    return URL.createObjectURL(blob);
+                }
+                // If content-type isn't image, try next proxy
+            }
+        } catch(e) {}
+    }
+    return null;
 }
 
-// ── STEP 2: Fetch data & load images in background ──────────────────
-(async function loadImages() {
+// ── STEP 2: Each newspaper loads INDEPENDENTLY and in parallel ──────
+(function loadAllIndividually() {
     var progressMsg = document.getElementById('progressMsg');
     var totalPapers = Object.keys(PAPERS).length;
-
-    // Fetch all listing pages in parallel
-    var pages = [
-        BASE + '/us-newspapers/',
-        BASE + '/financial-newspapers/',
-        BASE + '/world-newspapers/'
-    ];
-
-    progressMsg.textContent = 'Fetching front page index…';
-
-    var results = await Promise.all(pages.map(function(url) { return fetchWithProxy(url); }));
-
-    var imageMap = {};
-    results.forEach(function(html) {
-        if (!html) return;
-        var parsed = parseListingHTML(html);
-        Object.keys(parsed).forEach(function(slug) { imageMap[slug] = parsed[slug]; });
-    });
-
-    // Match slugs to image URLs
-    var matched = {};
-    Object.keys(PAPERS).forEach(function(slug) {
-        var imgUrl = imageMap[slug];
-        if (!imgUrl && ALT_SLUGS[slug]) {
-            for (var i = 0; i < ALT_SLUGS[slug].length; i++) {
-                if (imageMap[ALT_SLUGS[slug][i]]) { imgUrl = imageMap[ALT_SLUGS[slug][i]]; break; }
-            }
-        }
-        if (imgUrl) matched[slug] = imgUrl;
-    });
-
-    var matchedSlugs = Object.keys(matched);
-    var total = matchedSlugs.length;
     var loaded = 0;
+    var succeeded = 0;
 
-    if (total === 0) {
-        progressMsg.textContent = 'Unable to load front pages. Please try refreshing.';
-        return;
+    function updateProgress() {
+        loaded++;
+        if (loaded >= totalPapers) {
+            if (succeeded === 0) {
+                progressMsg.textContent = 'Unable to load front pages. Please try refreshing.';
+            } else {
+                progressMsg.style.opacity = '0';
+                setTimeout(function() { progressMsg.remove(); }, 300);
+            }
+        } else {
+            progressMsg.textContent = 'Loading front pages: ' + loaded + ' / ' + totalPapers;
+        }
     }
 
-    progressMsg.textContent = 'Loading front pages: 0 / ' + total;
+    // Reveal a single card once its image is ready
+    function revealCard(slug, blobUrl) {
+        var card = document.getElementById('card-' + slug);
+        if (!card) return;
+        var img = card.querySelector('img');
+        var shimmer = card.querySelector('.shimmer');
+        var ph = card.querySelector('.placeholder-name');
 
-    // Hide cards that have no image match
+        img.onload = function() {
+            img.classList.add('loaded');
+            if (shimmer) shimmer.classList.add('done');
+            if (ph) ph.classList.add('done');
+            succeeded++;
+            updateProgress();
+        };
+        img.onerror = function() {
+            card.classList.add('hidden');
+            updateProgress();
+        };
+        img.src = blobUrl;
+    }
+
+    // Hide a card that failed to load
+    function hideCard(slug) {
+        var card = document.getElementById('card-' + slug);
+        if (card) card.classList.add('hidden');
+        updateProgress();
+    }
+
+    // For each newspaper, independently scrape its dedicated page and load the image
+    // This means each paper appears as soon as its own data is ready — no waiting for others
     Object.keys(PAPERS).forEach(function(slug) {
-        if (!matched[slug]) {
-            var card = document.getElementById('card-' + slug);
-            if (card) card.classList.add('hidden');
-        }
+        var allSlugs = ALT_SLUGS[slug] ? ALT_SLUGS[slug].slice() : [slug];
+
+        (async function() {
+            // Strategy 1: Try direct thumbnail URL patterns (fastest — no page scrape needed)
+            for (var s = 0; s < allSlugs.length; s++) {
+                var directUrl = BASE + '/t/' + allSlugs[s] + '.jpg';
+                var blobUrl = await loadImageViaProxy(directUrl);
+                if (blobUrl) {
+                    revealCard(slug, blobUrl);
+                    return;
+                }
+            }
+
+            // Strategy 2: Scrape the individual paper page for the image URL
+            for (var s = 0; s < allSlugs.length; s++) {
+                var pageUrl = BASE + '/' + allSlugs[s] + '/';
+                var html = await fetchWithProxy(pageUrl);
+                if (html) {
+                    // Look for the front page image in the HTML
+                    var doc = new DOMParser().parseFromString(html, 'text/html');
+                    var imgEl = doc.querySelector('img[src*="/t/"]') ||
+                                doc.querySelector('img[src*="/fp/"]') ||
+                                doc.querySelector('.paper-img img') ||
+                                doc.querySelector('article img');
+                    if (imgEl) {
+                        var src = imgEl.getAttribute('src');
+                        if (src) {
+                            if (src.startsWith('/')) src = BASE + src;
+                            var blobUrl = await loadImageViaProxy(src);
+                            if (blobUrl) {
+                                revealCard(slug, blobUrl);
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // All strategies failed for this paper
+            hideCard(slug);
+        })();
     });
-
-    // Fire ALL image loads in parallel — each card reveals the instant its image arrives
-    var promises = matchedSlugs.map(function(slug) {
-        return new Promise(function(resolve) {
-            var card = document.getElementById('card-' + slug);
-            if (!card) { resolve(); return; }
-
-            var img = card.querySelector('img');
-            var shimmer = card.querySelector('.shimmer');
-            var ph = card.querySelector('.placeholder-name');
-
-            img.onload = function() {
-                img.classList.add('loaded');
-                if (shimmer) shimmer.classList.add('done');
-                if (ph) ph.classList.add('done');
-                loaded++;
-                progressMsg.textContent = 'Loading front pages: ' + loaded + ' / ' + total;
-                resolve();
-            };
-            img.onerror = function() {
-                card.classList.add('hidden');
-                loaded++;
-                progressMsg.textContent = 'Loading front pages: ' + loaded + ' / ' + total;
-                resolve();
-            };
-
-            img.src = matched[slug];
-        });
-    });
-
-    await Promise.all(promises);
-
-    progressMsg.style.opacity = '0';
-    setTimeout(function() { progressMsg.remove(); }, 300);
 })();
 
 // ── Stars ───────────────────────────────────────────────────────────
