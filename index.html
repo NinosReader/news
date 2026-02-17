@@ -60,11 +60,20 @@
         }
         @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:.2;} }
 
-        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+        /* Section headers inside building */
+        .section-label {
+            text-align: center; padding: 18px 0 10px;
+            font-family: 'Playfair Display', serif; font-size: 13px;
+            color: var(--gold); letter-spacing: .05em; font-weight: 700;
+            border-top: 1px solid rgba(255,255,255,.04);
+        }
+        .section-label:first-child { border-top: none; padding-top: 0; }
+
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 8px; }
 
         .paper {
             position: relative; border: 1.5px solid #1e2540; border-radius: 2px;
-            overflow: hidden; aspect-ratio: 3/4; background: #0a0d14;
+            overflow: hidden; aspect-ratio: 3/4.2; background: #0a0d14;
             box-shadow: inset 0 0 12px rgba(0,0,0,.4);
             transition: all .3s ease; cursor: pointer;
             animation: slideUp .5s ease both;
@@ -105,6 +114,18 @@
         }
         .label .region { font-size: 9px; color: var(--dim); display: block; margin-top: 2px; }
 
+        /* Loading state */
+        .loading-msg {
+            text-align: center; padding: 40px 20px; color: var(--dim);
+            font-size: 13px; letter-spacing: .03em;
+        }
+        .loading-msg .dots::after {
+            content: ''; animation: dots 1.5s infinite;
+        }
+        @keyframes dots {
+            0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; }
+        }
+
         .foot { text-align: center; margin-top: 22px; }
         .foot p { font-size: 10px; color: #3a3f52; letter-spacing: .04em; }
         .foot a {
@@ -114,6 +135,9 @@
             border: 1px solid var(--edge); transition: all .3s;
         }
         .foot a:hover { background: var(--gold); color: var(--night); border-color: var(--gold); }
+        .foot .credit {
+            font-size: 9px; color: #2a2f3e; margin-top: 10px;
+        }
         .copy { text-align: center; font-size: 10px; color: #2a2f3e; margin-top: 20px; }
 
         .modal-bg {
@@ -165,13 +189,16 @@
         <div class="sub" id="dateStr"></div>
     </div>
 
-    <div class="building">
-        <div class="grid" id="grid"></div>
+    <div class="building" id="building">
+        <div class="loading-msg" id="loadingMsg">
+            Fetching today's front pages<span class="dots"></span>
+        </div>
     </div>
 
     <div class="foot">
-        <p>Click any front page to expand</p>
+        <p>Click any front page to expand · Hover for name</p>
         <a href="https://ninosreader.github.io/index/" target="_blank">📄 Read articles without paywalls</a>
+        <div class="credit">Front page images courtesy of <a href="https://www.frontpages.com" target="_blank" style="color:var(--dim);">frontpages.com</a></div>
     </div>
     <div class="copy">© Global News Tower</div>
 </div>
@@ -190,61 +217,117 @@
 </div>
 
 <script>
-// Cache-bust twice a day (morning/evening)
-var h = new Date().getHours();
-var half = h < 12 ? 'am' : 'pm';
-var today = new Date().toISOString().slice(0,10);
-var cacheBust = today + '-' + half;
+// Date display
+document.getElementById('dateStr').textContent =
+    new Date().toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'});
 
-// Screenshot via thum.io — free, no auth, caches aggressively
-function thumb(url) {
-    return 'https://image.thum.io/get/width/800/crop/1000/noanimate/' + url;
-}
-// Higher res for modal
-function thumbHQ(url) {
-    return 'https://image.thum.io/get/width/1400/crop/1800/noanimate/' + url;
-}
+// Papers we want, keyed by frontpages.com slug
+var PAPERS = {
+    // US
+    'the-new-york-times':    { name:'The New York Times',    region:'New York',   url:'https://www.nytimes.com',          section:'United States' },
+    'the-washington-post':   { name:'The Washington Post',   region:'Washington', url:'https://www.washingtonpost.com',   section:'United States' },
+    'los-angeles-times':     { name:'Los Angeles Times',     region:'Los Angeles',url:'https://www.latimes.com',          section:'United States' },
+    'usa-today':             { name:'USA Today',             region:'National',   url:'https://www.usatoday.com',         section:'United States' },
+    'new-york-post':         { name:'New York Post',         region:'New York',   url:'https://nypost.com',               section:'United States' },
+    'the-boston-globe':       { name:'The Boston Globe',      region:'Boston',     url:'https://www.bostonglobe.com',      section:'United States' },
 
-var papers = [
-    { name:"South China Morning Post", short:"SCMP", region:"Hong Kong", url:"https://www.scmp.com" },
-    { name:"Financial Times", short:"FT", region:"London", url:"https://www.ft.com" },
-    { name:"The Guardian", short:"The Guardian", region:"UK", url:"https://www.theguardian.com" },
+    // UK & Europe
+    'financial-times':       { name:'Financial Times',       region:'London',     url:'https://www.ft.com',               section:'United Kingdom & Europe' },
+    'the-guardian':          { name:'The Guardian',          region:'London',     url:'https://www.theguardian.com',      section:'United Kingdom & Europe' },
+    'the-times-uk':          { name:'The Times',             region:'London',     url:'https://www.thetimes.com',         section:'United Kingdom & Europe' },
+    'the-daily-telegraph':   { name:'The Daily Telegraph',   region:'London',     url:'https://www.telegraph.co.uk',      section:'United Kingdom & Europe' },
+    'le-monde':              { name:'Le Monde',              region:'Paris',      url:'https://www.lemonde.fr',           section:'United Kingdom & Europe' },
+    'el-pais':               { name:'El País',               region:'Madrid',     url:'https://elpais.com',               section:'United Kingdom & Europe' },
 
-    { name:"The Times", short:"The Times", region:"London", url:"https://www.thetimes.com" },
-    { name:"Haaretz", short:"Haaretz", region:"Israel", url:"https://www.haaretz.com" },
-    { name:"The Japan Times", short:"Japan Times", region:"Tokyo", url:"https://www.japantimes.co.jp" },
+    // Asia, Middle East, Africa
+    'the-japan-times':       { name:'The Japan Times',       region:'Tokyo',      url:'https://www.japantimes.co.jp',     section:'Asia & World' },
+    'south-china-morning-post':{ name:'South China Morning Post', region:'Hong Kong', url:'https://www.scmp.com',         section:'Asia & World' },
+    'the-straits-times':     { name:'The Straits Times',     region:'Singapore',  url:'https://www.straitstimes.com',     section:'Asia & World' },
+    'haaretz':               { name:'Haaretz',               region:'Tel Aviv',   url:'https://www.haaretz.com',          section:'Asia & World' },
+    'the-times-of-india':    { name:'The Times of India',    region:'Mumbai',     url:'https://timesofindia.indiatimes.com', section:'Asia & World' },
+    'the-sydney-morning-herald':{ name:'Sydney Morning Herald', region:'Sydney',  url:'https://www.smh.com.au',           section:'Asia & World' },
+};
 
-    { name:"The Straits Times", short:"Straits Times", region:"Singapore", url:"https://www.straitstimes.com" },
-    { name:"El País English", short:"El País", region:"Madrid", url:"https://english.elpais.com" },
-    { name:"Wall Street Journal", short:"WSJ", region:"New York", url:"https://www.wsj.com" },
-
-    { name:"USA Today", short:"USA Today", region:"National", url:"https://www.usatoday.com" },
-    { name:"The New York Times", short:"NY Times", region:"New York", url:"https://www.nytimes.com" },
-    { name:"Los Angeles Times", short:"LA Times", region:"Los Angeles", url:"https://www.latimes.com" },
-
-    { name:"The Washington Post", short:"Wash Post", region:"D.C.", url:"https://www.washingtonpost.com" },
-    { name:"The Boston Globe", short:"Boston Globe", region:"Boston", url:"https://www.bostonglobe.com" },
-    { name:"The Daily Telegraph", short:"Telegraph", region:"London", url:"https://www.telegraph.co.uk" },
-
-    { name:"France 24", short:"France 24", region:"Paris", url:"https://www.france24.com/en/" },
-    { name:"Al Jazeera", short:"Al Jazeera", region:"Doha", url:"https://www.aljazeera.com" },
-    { name:"The Moscow Times", short:"Moscow Times", region:"Amsterdam", url:"https://www.themoscowtimes.com" },
+var BASE = 'https://www.frontpages.com';
+// Multiple CORS proxy options for resilience
+var PROXIES = [
+    'https://api.allorigins.win/raw?url=',
+    'https://corsproxy.io/?',
+    'https://api.codetabs.com/v1/proxy?quest='
 ];
 
-var grid = document.getElementById('grid');
+// Fetch with proxy fallback
+async function fetchWithProxy(url) {
+    for (var i = 0; i < PROXIES.length; i++) {
+        try {
+            var resp = await fetch(PROXIES[i] + encodeURIComponent(url));
+            if (resp.ok) return await resp.text();
+        } catch(e) { /* try next */ }
+    }
+    return null;
+}
 
-papers.forEach(function(p, i) {
+// Parse frontpages.com listing HTML to extract {slug: imageUrl} map
+function parseListingHTML(html) {
+    var map = {};
+    // Pattern: <a href="/slug/"> ... <img src="/t/2026/02/17/slug-xxxxx.webp"> or similar
+    // The thumbnails are in <img> tags with src="/t/..."
+    var parser = new DOMParser();
+    var doc = parser.parseFromString(html, 'text/html');
+    var links = doc.querySelectorAll('a[href]');
+    links.forEach(function(a) {
+        var href = a.getAttribute('href');
+        if (!href || !href.match(/^\/[a-z]/)) return;
+        var slug = href.replace(/^\/|\/$/g, '');
+        var img = a.querySelector('img[src*="/t/"]');
+        if (img) {
+            var src = img.getAttribute('src');
+            if (src && src.startsWith('/t/')) {
+                map[slug] = BASE + src;
+            }
+        }
+    });
+    return map;
+}
+
+// Also parse individual paper pages for the hero image
+function parseDetailHTML(html) {
+    var parser = new DOMParser();
+    var doc = parser.parseFromString(html, 'text/html');
+    // Look for the main cover image — usually the largest img with /t/ path
+    var imgs = doc.querySelectorAll('img[src*="/t/"]');
+    var best = null;
+    imgs.forEach(function(img) {
+        var src = img.getAttribute('src');
+        if (src && src.startsWith('/t/')) {
+            best = BASE + src;
+        }
+    });
+    // Also check for lazy-loaded images with data-src
+    if (!best) {
+        var allImgs = doc.querySelectorAll('img[data-src*="/t/"]');
+        allImgs.forEach(function(img) {
+            var src = img.getAttribute('data-src');
+            if (src && src.startsWith('/t/')) {
+                best = BASE + src;
+            }
+        });
+    }
+    return best;
+}
+
+// Build one card
+function buildCard(slug, imgUrl, paperInfo, delay) {
     var card = document.createElement('div');
     card.className = 'paper';
-    card.style.animationDelay = (i * 0.04) + 's';
+    card.style.animationDelay = (delay * 0.04) + 's';
 
     var shimmer = document.createElement('div');
     shimmer.className = 'shimmer';
     card.appendChild(shimmer);
 
     var img = document.createElement('img');
-    img.alt = p.name;
-
+    img.alt = paperInfo.name;
     img.onload = function() {
         img.classList.add('loaded');
         shimmer.classList.add('done');
@@ -252,34 +335,26 @@ papers.forEach(function(p, i) {
     img.onerror = function() {
         card.classList.add('hidden');
     };
-
-    setTimeout(function() {
-        img.src = thumb(p.url) + '?c=' + cacheBust;
-    }, i * 200);
-
+    img.src = imgUrl;
     card.appendChild(img);
 
     var label = document.createElement('div');
     label.className = 'label';
-    label.innerHTML = '<span class="name">' + p.short + '</span><span class="region">' + p.region + '</span>';
+    label.innerHTML = '<span class="name">' + paperInfo.name + '</span><span class="region">' + paperInfo.region + '</span>';
     card.appendChild(label);
 
     card.addEventListener('click', function() {
-        if (img.classList.contains('loaded')) {
-            openModal(p);
-        } else {
-            window.open(p.url, '_blank');
-        }
+        openModal(paperInfo.name, imgUrl, paperInfo.url);
     });
 
-    grid.appendChild(card);
-});
+    return card;
+}
 
 // Modal
-function openModal(p) {
-    document.getElementById('mTitle').textContent = p.name;
-    document.getElementById('mLink').href = p.url;
-    document.getElementById('mBody').innerHTML = '<img src="' + thumbHQ(p.url) + '?c=' + cacheBust + '" alt="' + p.name + '">';
+function openModal(name, imgUrl, siteUrl) {
+    document.getElementById('mTitle').textContent = name;
+    document.getElementById('mLink').href = siteUrl;
+    document.getElementById('mBody').innerHTML = '<img src="' + imgUrl + '" alt="' + name + '">';
     document.getElementById('modalBg').classList.add('open');
 }
 function closeModal() { document.getElementById('modalBg').classList.remove('open'); }
@@ -287,9 +362,104 @@ document.getElementById('mClose').addEventListener('click', closeModal);
 document.getElementById('modalBg').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
 document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeModal(); });
 
-// Date
-document.getElementById('dateStr').textContent =
-    new Date().toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'});
+// Main
+async function init() {
+    var building = document.getElementById('building');
+    var loadingMsg = document.getElementById('loadingMsg');
+
+    // Fetch listing pages to get thumbnail URLs
+    var imageMap = {};
+
+    var pages = [
+        BASE + '/us-newspapers/',
+        BASE + '/financial-newspapers/',
+        BASE + '/world-newspapers/'
+    ];
+
+    var fetches = pages.map(function(url) { return fetchWithProxy(url); });
+    var results = await Promise.all(fetches);
+
+    results.forEach(function(html) {
+        if (!html) return;
+        var parsed = parseListingHTML(html);
+        Object.keys(parsed).forEach(function(slug) {
+            imageMap[slug] = parsed[slug];
+        });
+    });
+
+    // Some slugs on frontpages.com differ slightly — try alternate forms
+    var altSlugs = {
+        'the-times-uk': ['the-times', 'the-times-uk', 'the-times-and-the-sunday-times'],
+        'the-guardian': ['the-guardian', 'the-guardian-uk', 'the-guardian-usa'],
+        'el-pais': ['el-pais', 'el-pais-es'],
+        'south-china-morning-post': ['south-china-morning-post', 'scmp'],
+        'the-straits-times': ['the-straits-times', 'straits-times'],
+        'haaretz': ['haaretz', 'ha-aretz'],
+        'the-times-of-india': ['the-times-of-india', 'times-of-india'],
+        'the-sydney-morning-herald': ['the-sydney-morning-herald', 'sydney-morning-herald'],
+    };
+
+    // Match papers to discovered images
+    var sections = {};
+    var matchCount = 0;
+    var slugKeys = Object.keys(PAPERS);
+
+    slugKeys.forEach(function(slug) {
+        var paper = PAPERS[slug];
+        var imgUrl = imageMap[slug];
+
+        // Try alternates
+        if (!imgUrl && altSlugs[slug]) {
+            for (var i = 0; i < altSlugs[slug].length; i++) {
+                if (imageMap[altSlugs[slug][i]]) {
+                    imgUrl = imageMap[altSlugs[slug][i]];
+                    break;
+                }
+            }
+        }
+
+        if (!imgUrl) return; // Skip papers we couldn't find
+
+        if (!sections[paper.section]) sections[paper.section] = [];
+        sections[paper.section].push({ slug: slug, imgUrl: imgUrl, info: paper });
+        matchCount++;
+    });
+
+    // Clear loading
+    loadingMsg.remove();
+
+    if (matchCount === 0) {
+        building.innerHTML = '<div class="loading-msg">Unable to load front pages. Please try refreshing.</div>';
+        return;
+    }
+
+    // Render sections
+    var sectionOrder = ['United States', 'United Kingdom & Europe', 'Asia & World'];
+    var cardIndex = 0;
+
+    sectionOrder.forEach(function(sectionName) {
+        var papers = sections[sectionName];
+        if (!papers || papers.length === 0) return;
+
+        var label = document.createElement('div');
+        label.className = 'section-label';
+        label.textContent = sectionName;
+        building.appendChild(label);
+
+        var grid = document.createElement('div');
+        grid.className = 'grid';
+
+        papers.forEach(function(p) {
+            var card = buildCard(p.slug, p.imgUrl, p.info, cardIndex);
+            grid.appendChild(card);
+            cardIndex++;
+        });
+
+        building.appendChild(grid);
+    });
+}
+
+init();
 
 // Stars
 var sc = document.getElementById('stars');
