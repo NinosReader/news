@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global News Tower</title>
+    <title>Nino's Global News Tower</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -53,7 +53,6 @@
             width: 2px; height: 30px; background: linear-gradient(to top, var(--edge), transparent);
         }
 
-        /* Section headers inside building */
         .section-label {
             text-align: center; padding: 18px 0 10px;
             font-family: 'Playfair Display', serif; font-size: 13px;
@@ -92,6 +91,16 @@
         .paper .shimmer.done { opacity: 0; transition: opacity .3s; pointer-events: none; }
         @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
+        /* Paper name overlay shown on shimmer cards before image loads */
+        .paper .placeholder-name {
+            position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+            font-family: 'Playfair Display', serif; font-size: 11px; font-weight: 700;
+            color: rgba(255,255,255,.25); text-align: center; padding: 10px;
+            pointer-events: none; z-index: 2;
+            transition: opacity .3s;
+        }
+        .paper .placeholder-name.done { opacity: 0; }
+
         .paper .label {
             position: absolute; bottom: 0; left: 0; right: 0;
             background: linear-gradient(to top, rgba(7,11,20,.94) 0%, rgba(7,11,20,.7) 50%, transparent 100%);
@@ -105,19 +114,6 @@
         }
         .label .region { font-size: 9px; color: #fff; display: block; margin-top: 2px; }
 
-        /* Loading state */
-        .loading-msg {
-            text-align: center; padding: 40px 20px; color: #fff;
-            font-size: 13px; letter-spacing: .03em;
-        }
-        .loading-msg .dots::after {
-            content: ''; animation: dots 1.5s infinite;
-        }
-        @keyframes dots {
-            0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; }
-        }
-
-        /* Progress counter */
         .progress-msg {
             text-align: center; padding: 10px 20px 16px; color: rgba(255,255,255,.5);
             font-size: 11px; letter-spacing: .03em;
@@ -181,21 +177,19 @@
 
 <div class="scene">
     <div class="header">
-        <h1>Global News Tower</h1>
+        <h1>Nino's Global News Tower</h1>
         <div class="sub" id="dateStr"></div>
     </div>
 
     <div class="building" id="building">
-        <div class="loading-msg" id="loadingMsg">
-            Fetching today's front pages<span class="dots"></span>
-        </div>
+        <!-- Skeleton is rendered immediately by inline script below -->
     </div>
 
     <div class="foot">
         <p>Click any front page to expand · Hover for name</p>
         <a href="https://ninosreader.github.io/index/" target="_blank">📄 Read articles without paywalls</a>
     </div>
-    <div class="copy">© Global News Tower</div>
+    <div class="copy">© Nino's Global News Tower</div>
 </div>
 
 <div class="modal-bg" id="modalBg">
@@ -212,108 +206,126 @@
 </div>
 
 <script>
-// Date display
-document.getElementById('dateStr').textContent =
-    new Date().toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'});
-
-// Papers we want, keyed by frontpages.com slug
+// ── Config ──────────────────────────────────────────────────────────
 var PAPERS = {
-    // US
-    'the-new-york-times':    { name:'The New York Times',    region:'New York',   url:'https://www.nytimes.com',          section:'United States' },
-    'the-washington-post':   { name:'The Washington Post',   region:'Washington', url:'https://www.washingtonpost.com',   section:'United States' },
-    'los-angeles-times':     { name:'Los Angeles Times',     region:'Los Angeles',url:'https://www.latimes.com',          section:'United States' },
-    'usa-today':             { name:'USA Today',             region:'National',   url:'https://www.usatoday.com',         section:'United States' },
-    'the-washington-times':  { name:'The Washington Times',  region:'Washington', url:'https://www.washingtontimes.com',  section:'United States' },
-    'the-boston-globe':       { name:'The Boston Globe',      region:'Boston',     url:'https://www.bostonglobe.com',      section:'United States' },
+    'the-new-york-times':      { name:'The New York Times',      region:'New York',    url:'https://www.nytimes.com',             section:'United States' },
+    'the-washington-post':     { name:'The Washington Post',     region:'Washington',  url:'https://www.washingtonpost.com',      section:'United States' },
+    'los-angeles-times':       { name:'Los Angeles Times',       region:'Los Angeles', url:'https://www.latimes.com',             section:'United States' },
+    'usa-today':               { name:'USA Today',               region:'National',    url:'https://www.usatoday.com',            section:'United States' },
+    'the-washington-times':    { name:'The Washington Times',    region:'Washington',  url:'https://www.washingtontimes.com',     section:'United States' },
+    'the-boston-globe':         { name:'The Boston Globe',        region:'Boston',      url:'https://www.bostonglobe.com',         section:'United States' },
 
-    // UK & Europe
-    'financial-times':       { name:'Financial Times',       region:'London',     url:'https://www.ft.com',               section:'United Kingdom & Europe' },
-    'the-guardian':          { name:'The Guardian',          region:'London',     url:'https://www.theguardian.com',      section:'United Kingdom & Europe' },
-    'the-times-uk':          { name:'The Times',             region:'London',     url:'https://www.thetimes.com',         section:'United Kingdom & Europe' },
-    'the-daily-telegraph':   { name:'The Daily Telegraph',   region:'London',     url:'https://www.telegraph.co.uk',      section:'United Kingdom & Europe' },
-    'le-monde':              { name:'Le Monde',              region:'Paris',      url:'https://www.lemonde.fr',           section:'United Kingdom & Europe' },
+    'financial-times':         { name:'Financial Times',         region:'London',      url:'https://www.ft.com',                  section:'United Kingdom & Europe' },
+    'the-guardian':            { name:'The Guardian',            region:'London',      url:'https://www.theguardian.com',         section:'United Kingdom & Europe' },
+    'the-times-uk':            { name:'The Times',               region:'London',      url:'https://www.thetimes.com',            section:'United Kingdom & Europe' },
+    'the-daily-telegraph':     { name:'The Daily Telegraph',     region:'London',      url:'https://www.telegraph.co.uk',         section:'United Kingdom & Europe' },
+    'le-monde':                { name:'Le Monde',                region:'Paris',       url:'https://www.lemonde.fr',              section:'United Kingdom & Europe' },
 
-    // Asia, Middle East, Africa
-    'the-japan-times':       { name:'The Japan Times',       region:'Tokyo',      url:'https://www.japantimes.co.jp',     section:'Asia & World' },
-    'south-china-morning-post':{ name:'South China Morning Post', region:'Hong Kong', url:'https://www.scmp.com',         section:'Asia & World' },
-    'the-straits-times':     { name:'The Straits Times',     region:'Singapore',  url:'https://www.straitstimes.com',     section:'Asia & World' },
-    'haaretz':               { name:'Haaretz',               region:'Tel Aviv',   url:'https://www.haaretz.com',          section:'Asia & World' },
-    'the-times-of-india':    { name:'The Times of India',    region:'Mumbai',     url:'https://timesofindia.indiatimes.com', section:'Asia & World' },
-    'the-sydney-morning-herald':{ name:'Sydney Morning Herald', region:'Sydney',  url:'https://www.smh.com.au',           section:'Asia & World' },
+    'the-japan-times':         { name:'The Japan Times',         region:'Tokyo',       url:'https://www.japantimes.co.jp',        section:'Asia & World' },
+    'south-china-morning-post':{ name:'South China Morning Post',region:'Hong Kong',   url:'https://www.scmp.com',                section:'Asia & World' },
+    'the-straits-times':       { name:'The Straits Times',       region:'Singapore',   url:'https://www.straitstimes.com',        section:'Asia & World' },
+    'haaretz':                 { name:'Haaretz',                 region:'Tel Aviv',    url:'https://www.haaretz.com',             section:'Asia & World' },
+    'the-times-of-india':      { name:'The Times of India',      region:'Mumbai',      url:'https://timesofindia.indiatimes.com', section:'Asia & World' },
+    'the-sydney-morning-herald':{ name:'Sydney Morning Herald',  region:'Sydney',      url:'https://www.smh.com.au',              section:'Asia & World' },
 };
 
+var SECTION_ORDER = ['United States', 'United Kingdom & Europe', 'Asia & World'];
+
 var BASE = 'https://www.frontpages.com';
-// Multiple CORS proxy options for resilience
 var PROXIES = [
     'https://api.allorigins.win/raw?url=',
     'https://corsproxy.io/?',
     'https://api.codetabs.com/v1/proxy?quest='
 ];
 
-// Fetch with proxy fallback
-async function fetchWithProxy(url) {
-    for (var i = 0; i < PROXIES.length; i++) {
-        try {
-            var resp = await fetch(PROXIES[i] + encodeURIComponent(url));
-            if (resp.ok) return await resp.text();
-        } catch(e) { /* try next */ }
-    }
-    return null;
-}
+var ALT_SLUGS = {
+    'the-times-uk': ['the-times', 'the-times-uk', 'the-times-and-the-sunday-times'],
+    'the-guardian': ['the-guardian', 'the-guardian-uk', 'the-guardian-usa'],
+    'south-china-morning-post': ['south-china-morning-post', 'scmp'],
+    'the-straits-times': ['the-straits-times', 'straits-times'],
+    'haaretz': ['haaretz', 'ha-aretz'],
+    'the-times-of-india': ['the-times-of-india', 'times-of-india'],
+    'the-sydney-morning-herald': ['the-sydney-morning-herald', 'sydney-morning-herald'],
+    'the-washington-times': ['the-washington-times', 'washington-times'],
+};
 
-// Parse frontpages.com listing HTML to extract {slug: imageUrl} map
-function parseListingHTML(html) {
-    var map = {};
-    var parser = new DOMParser();
-    var doc = parser.parseFromString(html, 'text/html');
-    var links = doc.querySelectorAll('a[href]');
-    links.forEach(function(a) {
-        var href = a.getAttribute('href');
-        if (!href || !href.match(/^\/[a-z]/)) return;
-        var slug = href.replace(/^\/|\/$/g, '');
-        var img = a.querySelector('img[src*="/t/"]');
-        if (img) {
-            var src = img.getAttribute('src');
-            if (src && src.startsWith('/t/')) {
-                map[slug] = BASE + src;
-            }
-        }
-    });
-    return map;
-}
+// ── Date ────────────────────────────────────────────────────────────
+document.getElementById('dateStr').textContent =
+    new Date().toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'});
 
-// Build one card with shimmer placeholder
-function buildCard(slug, imgUrl, paperInfo) {
-    var card = document.createElement('div');
-    card.className = 'paper';
+// ── STEP 1: Render the full skeleton IMMEDIATELY (no network needed) ─
+(function renderSkeleton() {
+    var building = document.getElementById('building');
+    var sections = {};
 
-    var shimmer = document.createElement('div');
-    shimmer.className = 'shimmer';
-    card.appendChild(shimmer);
-
-    var img = document.createElement('img');
-    img.alt = paperInfo.name;
-    img.loading = 'eager';
-    img.decoding = 'async';
-    img.fetchPriority = 'high';
-    card.appendChild(img);
-
-    var label = document.createElement('div');
-    label.className = 'label';
-    label.innerHTML = '<span class="name">' + paperInfo.name + '</span><span class="region">' + paperInfo.region + '</span>';
-    card.appendChild(label);
-
-    card.addEventListener('click', function() {
-        openModal(paperInfo.name, imgUrl, paperInfo.url);
+    Object.keys(PAPERS).forEach(function(slug) {
+        var sec = PAPERS[slug].section;
+        if (!sections[sec]) sections[sec] = [];
+        sections[sec].push(slug);
     });
 
-    // Store the URL for later
-    card._imgUrl = imgUrl;
+    SECTION_ORDER.forEach(function(sectionName) {
+        var slugs = sections[sectionName];
+        if (!slugs || slugs.length === 0) return;
 
-    return card;
-}
+        var label = document.createElement('div');
+        label.className = 'section-label';
+        label.textContent = sectionName;
+        building.appendChild(label);
 
-// Modal
+        var grid = document.createElement('div');
+        grid.className = 'grid';
+
+        slugs.forEach(function(slug) {
+            var paper = PAPERS[slug];
+            var card = document.createElement('div');
+            card.className = 'paper';
+            card.id = 'card-' + slug;
+
+            // Shimmer
+            var shimmer = document.createElement('div');
+            shimmer.className = 'shimmer';
+            card.appendChild(shimmer);
+
+            // Placeholder name visible while loading
+            var ph = document.createElement('div');
+            ph.className = 'placeholder-name';
+            ph.textContent = paper.name;
+            card.appendChild(ph);
+
+            // Image (src set later)
+            var img = document.createElement('img');
+            img.alt = paper.name;
+            img.loading = 'eager';
+            img.decoding = 'async';
+            card.appendChild(img);
+
+            // Hover label
+            var lbl = document.createElement('div');
+            lbl.className = 'label';
+            lbl.innerHTML = '<span class="name">' + paper.name + '</span><span class="region">' + paper.region + '</span>';
+            card.appendChild(lbl);
+
+            card.addEventListener('click', function() {
+                var imgEl = card.querySelector('img');
+                if (imgEl && imgEl.src) openModal(paper.name, imgEl.src, paper.url);
+            });
+
+            grid.appendChild(card);
+        });
+
+        building.appendChild(grid);
+    });
+
+    // Progress message
+    var pm = document.createElement('div');
+    pm.className = 'progress-msg';
+    pm.id = 'progressMsg';
+    pm.textContent = 'Fetching front pages…';
+    building.appendChild(pm);
+})();
+
+// ── Modal ───────────────────────────────────────────────────────────
 function openModal(name, imgUrl, siteUrl) {
     document.getElementById('mTitle').textContent = name;
     document.getElementById('mLink').href = siteUrl;
@@ -325,120 +337,101 @@ document.getElementById('mClose').addEventListener('click', closeModal);
 document.getElementById('modalBg').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
 document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeModal(); });
 
-// Main
-async function init() {
-    var building = document.getElementById('building');
-    var loadingMsg = document.getElementById('loadingMsg');
+// ── Network helpers ─────────────────────────────────────────────────
+async function fetchWithProxy(url) {
+    for (var i = 0; i < PROXIES.length; i++) {
+        try {
+            var resp = await fetch(PROXIES[i] + encodeURIComponent(url));
+            if (resp.ok) return await resp.text();
+        } catch(e) {}
+    }
+    return null;
+}
 
-    // Fetch listing pages to get thumbnail URLs
-    var imageMap = {};
+function parseListingHTML(html) {
+    var map = {};
+    var doc = new DOMParser().parseFromString(html, 'text/html');
+    doc.querySelectorAll('a[href]').forEach(function(a) {
+        var href = a.getAttribute('href');
+        if (!href || !href.match(/^\/[a-z]/)) return;
+        var slug = href.replace(/^\/|\/$/g, '');
+        var img = a.querySelector('img[src*="/t/"]');
+        if (img) {
+            var src = img.getAttribute('src');
+            if (src && src.startsWith('/t/')) map[slug] = BASE + src;
+        }
+    });
+    return map;
+}
 
+// ── STEP 2: Fetch data & load images in background ──────────────────
+(async function loadImages() {
+    var progressMsg = document.getElementById('progressMsg');
+    var totalPapers = Object.keys(PAPERS).length;
+
+    // Fetch all listing pages in parallel
     var pages = [
         BASE + '/us-newspapers/',
         BASE + '/financial-newspapers/',
         BASE + '/world-newspapers/'
     ];
 
-    var fetches = pages.map(function(url) { return fetchWithProxy(url); });
-    var results = await Promise.all(fetches);
+    progressMsg.textContent = 'Fetching front page index…';
 
+    var results = await Promise.all(pages.map(function(url) { return fetchWithProxy(url); }));
+
+    var imageMap = {};
     results.forEach(function(html) {
         if (!html) return;
         var parsed = parseListingHTML(html);
-        Object.keys(parsed).forEach(function(slug) {
-            imageMap[slug] = parsed[slug];
-        });
+        Object.keys(parsed).forEach(function(slug) { imageMap[slug] = parsed[slug]; });
     });
 
-    // Some slugs on frontpages.com differ slightly — try alternate forms
-    var altSlugs = {
-        'the-times-uk': ['the-times', 'the-times-uk', 'the-times-and-the-sunday-times'],
-        'the-guardian': ['the-guardian', 'the-guardian-uk', 'the-guardian-usa'],
-        'south-china-morning-post': ['south-china-morning-post', 'scmp'],
-        'the-straits-times': ['the-straits-times', 'straits-times'],
-        'haaretz': ['haaretz', 'ha-aretz'],
-        'the-times-of-india': ['the-times-of-india', 'times-of-india'],
-        'the-sydney-morning-herald': ['the-sydney-morning-herald', 'sydney-morning-herald'],
-        'the-washington-times': ['the-washington-times', 'washington-times'],
-    };
-
-    // Match papers to discovered images
-    var sections = {};
-    var matchCount = 0;
-    var slugKeys = Object.keys(PAPERS);
-
-    slugKeys.forEach(function(slug) {
-        var paper = PAPERS[slug];
+    // Match slugs to image URLs
+    var matched = {};
+    Object.keys(PAPERS).forEach(function(slug) {
         var imgUrl = imageMap[slug];
-
-        // Try alternates
-        if (!imgUrl && altSlugs[slug]) {
-            for (var i = 0; i < altSlugs[slug].length; i++) {
-                if (imageMap[altSlugs[slug][i]]) {
-                    imgUrl = imageMap[altSlugs[slug][i]];
-                    break;
-                }
+        if (!imgUrl && ALT_SLUGS[slug]) {
+            for (var i = 0; i < ALT_SLUGS[slug].length; i++) {
+                if (imageMap[ALT_SLUGS[slug][i]]) { imgUrl = imageMap[ALT_SLUGS[slug][i]]; break; }
             }
         }
-
-        if (!imgUrl) return; // Skip papers we couldn't find
-
-        if (!sections[paper.section]) sections[paper.section] = [];
-        sections[paper.section].push({ slug: slug, imgUrl: imgUrl, info: paper });
-        matchCount++;
+        if (imgUrl) matched[slug] = imgUrl;
     });
 
-    // Clear loading message
-    loadingMsg.remove();
+    var matchedSlugs = Object.keys(matched);
+    var total = matchedSlugs.length;
+    var loaded = 0;
 
-    if (matchCount === 0) {
-        building.innerHTML = '<div class="loading-msg">Unable to load front pages. Please try refreshing.</div>';
+    if (total === 0) {
+        progressMsg.textContent = 'Unable to load front pages. Please try refreshing.';
         return;
     }
 
-    // Build all section labels, grids, and cards into the DOM immediately (shimmer placeholders visible)
-    var sectionOrder = ['United States', 'United Kingdom & Europe', 'Asia & World'];
-    var allCards = [];
+    progressMsg.textContent = 'Loading front pages: 0 / ' + total;
 
-    sectionOrder.forEach(function(sectionName) {
-        var papers = sections[sectionName];
-        if (!papers || papers.length === 0) return;
-
-        var label = document.createElement('div');
-        label.className = 'section-label';
-        label.textContent = sectionName;
-        building.appendChild(label);
-
-        var grid = document.createElement('div');
-        grid.className = 'grid';
-
-        papers.forEach(function(p) {
-            var card = buildCard(p.slug, p.imgUrl, p.info);
-            grid.appendChild(card);
-            allCards.push(card);
-        });
-
-        building.appendChild(grid);
+    // Hide cards that have no image match
+    Object.keys(PAPERS).forEach(function(slug) {
+        if (!matched[slug]) {
+            var card = document.getElementById('card-' + slug);
+            if (card) card.classList.add('hidden');
+        }
     });
 
-    // Add a progress indicator
-    var progressMsg = document.createElement('div');
-    progressMsg.className = 'progress-msg';
-    progressMsg.textContent = 'Loading front pages: 0 / ' + allCards.length;
-    building.appendChild(progressMsg);
-
-    // Fire ALL image loads in parallel — each card reveals itself the instant its image is ready
-    var loaded = 0;
-    var total = allCards.length;
-
-    var imagePromises = allCards.map(function(card) {
+    // Fire ALL image loads in parallel — each card reveals the instant its image arrives
+    var promises = matchedSlugs.map(function(slug) {
         return new Promise(function(resolve) {
+            var card = document.getElementById('card-' + slug);
+            if (!card) { resolve(); return; }
+
             var img = card.querySelector('img');
             var shimmer = card.querySelector('.shimmer');
+            var ph = card.querySelector('.placeholder-name');
 
             img.onload = function() {
                 img.classList.add('loaded');
                 if (shimmer) shimmer.classList.add('done');
+                if (ph) ph.classList.add('done');
                 loaded++;
                 progressMsg.textContent = 'Loading front pages: ' + loaded + ' / ' + total;
                 resolve();
@@ -450,20 +443,17 @@ async function init() {
                 resolve();
             };
 
-            // Kick off the fetch immediately
-            img.src = card._imgUrl;
+            img.src = matched[slug];
         });
     });
 
-    // Wait for all to finish, then remove progress
-    await Promise.all(imagePromises);
+    await Promise.all(promises);
+
     progressMsg.style.opacity = '0';
     setTimeout(function() { progressMsg.remove(); }, 300);
-}
+})();
 
-init();
-
-// Stars
+// ── Stars ───────────────────────────────────────────────────────────
 var sc = document.getElementById('stars');
 for (var i = 0; i < 60; i++) {
     var s = document.createElement('div');
