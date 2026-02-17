@@ -33,11 +33,11 @@
         .header { text-align: center; margin-bottom: 28px; animation: fadeIn .8s ease; }
         .header h1 {
             font-family: 'Playfair Display', serif; font-size: clamp(1.6rem,4.5vw,2.5rem);
-            font-weight: 900; color: var(--gold); letter-spacing: .03em;
-            text-shadow: 0 0 40px rgba(212,191,106,.18);
+            font-weight: 900; color: #fff; letter-spacing: .03em;
+            text-shadow: 0 0 40px rgba(255,255,255,.12);
         }
         .header .sub {
-            font-size: 11px; color: var(--dim); margin-top: 6px;
+            font-size: 11px; color: #fff; margin-top: 6px;
             font-weight: 300; letter-spacing: .07em; text-transform: uppercase;
         }
         @keyframes fadeIn { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
@@ -52,19 +52,13 @@
             content:''; position: absolute; top: -30px; left: 50%; transform: translateX(-50%);
             width: 2px; height: 30px; background: linear-gradient(to top, var(--edge), transparent);
         }
-        .building::after {
-            content:''; position: absolute; top: -34px; left: 50%; transform: translateX(-50%);
-            width: 6px; height: 6px; border-radius: 50%; background: #ef4444;
-            box-shadow: 0 0 8px #ef4444, 0 0 18px rgba(239,68,68,.3);
-            animation: blink 2s ease-in-out infinite;
-        }
-        @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:.2;} }
+        /* Flashing red dot removed */
 
         /* Section headers inside building */
         .section-label {
             text-align: center; padding: 18px 0 10px;
             font-family: 'Playfair Display', serif; font-size: 13px;
-            color: var(--gold); letter-spacing: .05em; font-weight: 700;
+            color: #fff; letter-spacing: .05em; font-weight: 700;
             border-top: 1px solid rgba(255,255,255,.04);
         }
         .section-label:first-child { border-top: none; padding-top: 0; }
@@ -88,9 +82,8 @@
 
         .paper img {
             width: 100%; height: 100%; object-fit: cover; object-position: top center;
-            display: block; opacity: 0; transition: opacity .6s ease;
+            display: block;
         }
-        .paper img.loaded { opacity: 1; }
 
         .paper .shimmer {
             position: absolute; inset: 0;
@@ -98,7 +91,7 @@
             background-size: 200% 100%;
             animation: shimmer 1.5s ease-in-out infinite;
         }
-        .paper .shimmer.done { opacity: 0; transition: opacity .4s; pointer-events: none; }
+        .paper .shimmer.done { opacity: 0; transition: opacity .2s; pointer-events: none; }
         @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
         .paper .label {
@@ -112,11 +105,11 @@
             font-family: 'Playfair Display',serif; font-weight: 700;
             font-size: 12px; color: #fff; display: block;
         }
-        .label .region { font-size: 9px; color: var(--dim); display: block; margin-top: 2px; }
+        .label .region { font-size: 9px; color: #fff; display: block; margin-top: 2px; }
 
         /* Loading state */
         .loading-msg {
-            text-align: center; padding: 40px 20px; color: var(--dim);
+            text-align: center; padding: 40px 20px; color: #fff;
             font-size: 13px; letter-spacing: .03em;
         }
         .loading-msg .dots::after {
@@ -127,18 +120,18 @@
         }
 
         .foot { text-align: center; margin-top: 22px; }
-        .foot p { font-size: 10px; color: #3a3f52; letter-spacing: .04em; }
+        .foot p { font-size: 10px; color: #fff; letter-spacing: .04em; }
         .foot a {
             display: inline-block; margin-top: 12px;
-            color: var(--gold); text-decoration: none; font-size: 13px;
+            color: #fff; text-decoration: none; font-size: 13px;
             background: rgba(21,26,40,.8); padding: 8px 18px; border-radius: 5px;
             border: 1px solid var(--edge); transition: all .3s;
         }
-        .foot a:hover { background: var(--gold); color: var(--night); border-color: var(--gold); }
+        .foot a:hover { background: #fff; color: var(--night); border-color: #fff; }
         .foot .credit {
-            font-size: 9px; color: #2a2f3e; margin-top: 10px;
+            font-size: 9px; color: #fff; margin-top: 10px;
         }
-        .copy { text-align: center; font-size: 10px; color: #2a2f3e; margin-top: 20px; }
+        .copy { text-align: center; font-size: 10px; color: rgba(255,255,255,.5); margin-top: 20px; }
 
         .modal-bg {
             position: fixed; inset: 0; background: rgba(2,3,8,.95); z-index: 100;
@@ -161,12 +154,12 @@
         .modal-top .title { font-family:'Playfair Display',serif; font-weight:700; color:#fff; font-size:14px; }
         .modal-top .actions { display:flex; gap:8px; align-items:center; }
         .modal-top a {
-            color:var(--gold); text-decoration:none; font-size:11px; font-weight:500;
-            border:1px solid rgba(212,191,106,.3); padding:3px 10px; border-radius:3px; transition:all .2s;
+            color:#fff; text-decoration:none; font-size:11px; font-weight:500;
+            border:1px solid rgba(255,255,255,.3); padding:3px 10px; border-radius:3px; transition:all .2s;
         }
-        .modal-top a:hover { background:var(--gold); color:var(--night); }
+        .modal-top a:hover { background:#fff; color:var(--night); }
         .modal-top button {
-            background:none; border:1px solid rgba(255,255,255,.08); color:var(--dim);
+            background:none; border:1px solid rgba(255,255,255,.08); color:#fff;
             width:28px; height:28px; border-radius:3px; cursor:pointer; font-size:14px;
             display:flex; align-items:center; justify-content:center;
         }
@@ -198,7 +191,7 @@
     <div class="foot">
         <p>Click any front page to expand · Hover for name</p>
         <a href="https://ninosreader.github.io/index/" target="_blank">📄 Read articles without paywalls</a>
-        <div class="credit">Front page images courtesy of <a href="https://www.frontpages.com" target="_blank" style="color:var(--dim);">frontpages.com</a></div>
+        <div class="credit">Front page images courtesy of <a href="https://www.frontpages.com" target="_blank" style="color:#fff;">frontpages.com</a></div>
     </div>
     <div class="copy">© Global News Tower</div>
 </div>
@@ -237,6 +230,7 @@ var PAPERS = {
     'the-times-uk':          { name:'The Times',             region:'London',     url:'https://www.thetimes.com',         section:'United Kingdom & Europe' },
     'the-daily-telegraph':   { name:'The Daily Telegraph',   region:'London',     url:'https://www.telegraph.co.uk',      section:'United Kingdom & Europe' },
     'le-monde':              { name:'Le Monde',              region:'Paris',      url:'https://www.lemonde.fr',           section:'United Kingdom & Europe' },
+    'el-pais':               { name:'El País',               region:'Madrid',     url:'https://elpais.com',               section:'United Kingdom & Europe' },
 
     // Asia, Middle East, Africa
     'the-japan-times':       { name:'The Japan Times',       region:'Tokyo',      url:'https://www.japantimes.co.jp',     section:'Asia & World' },
@@ -269,8 +263,6 @@ async function fetchWithProxy(url) {
 // Parse frontpages.com listing HTML to extract {slug: imageUrl} map
 function parseListingHTML(html) {
     var map = {};
-    // Pattern: <a href="/slug/"> ... <img src="/t/2026/02/17/slug-xxxxx.webp"> or similar
-    // The thumbnails are in <img> tags with src="/t/..."
     var parser = new DOMParser();
     var doc = parser.parseFromString(html, 'text/html');
     var links = doc.querySelectorAll('a[href]');
@@ -293,7 +285,6 @@ function parseListingHTML(html) {
 function parseDetailHTML(html) {
     var parser = new DOMParser();
     var doc = parser.parseFromString(html, 'text/html');
-    // Look for the main cover image — usually the largest img with /t/ path
     var imgs = doc.querySelectorAll('img[src*="/t/"]');
     var best = null;
     imgs.forEach(function(img) {
@@ -302,7 +293,6 @@ function parseDetailHTML(html) {
             best = BASE + src;
         }
     });
-    // Also check for lazy-loaded images with data-src
     if (!best) {
         var allImgs = doc.querySelectorAll('img[data-src*="/t/"]');
         allImgs.forEach(function(img) {
@@ -315,25 +305,27 @@ function parseDetailHTML(html) {
     return best;
 }
 
-// Build one card
+// Preload an image and return a promise that resolves with the URL
+function preloadImage(url) {
+    return new Promise(function(resolve, reject) {
+        var img = new Image();
+        img.onload = function() { resolve(url); };
+        img.onerror = function() { reject(url); };
+        img.src = url;
+    });
+}
+
+// Build one card (image already preloaded, show immediately)
 function buildCard(slug, imgUrl, paperInfo, delay) {
     var card = document.createElement('div');
     card.className = 'paper';
     card.style.animationDelay = (delay * 0.04) + 's';
 
-    var shimmer = document.createElement('div');
-    shimmer.className = 'shimmer';
-    card.appendChild(shimmer);
-
     var img = document.createElement('img');
     img.alt = paperInfo.name;
-    img.onload = function() {
-        img.classList.add('loaded');
-        shimmer.classList.add('done');
-    };
-    img.onerror = function() {
-        card.classList.add('hidden');
-    };
+    img.loading = 'eager';
+    img.decoding = 'async';
+    img.fetchPriority = 'high';
     img.src = imgUrl;
     card.appendChild(img);
 
@@ -390,6 +382,7 @@ async function init() {
     var altSlugs = {
         'the-times-uk': ['the-times', 'the-times-uk', 'the-times-and-the-sunday-times'],
         'the-guardian': ['the-guardian', 'the-guardian-uk', 'the-guardian-usa'],
+        'el-pais': ['el-pais', 'el-pais-es'],
         'south-china-morning-post': ['south-china-morning-post', 'scmp'],
         'the-straits-times': ['the-straits-times', 'straits-times'],
         'haaretz': ['haaretz', 'ha-aretz'],
@@ -401,6 +394,7 @@ async function init() {
     var sections = {};
     var matchCount = 0;
     var slugKeys = Object.keys(PAPERS);
+    var allImageUrls = [];
 
     slugKeys.forEach(function(slug) {
         var paper = PAPERS[slug];
@@ -420,8 +414,12 @@ async function init() {
 
         if (!sections[paper.section]) sections[paper.section] = [];
         sections[paper.section].push({ slug: slug, imgUrl: imgUrl, info: paper });
+        allImageUrls.push(imgUrl);
         matchCount++;
     });
+
+    // Preload all images concurrently for fastest possible display
+    await Promise.allSettled(allImageUrls.map(preloadImage));
 
     // Clear loading
     loadingMsg.remove();
