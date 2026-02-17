@@ -12,28 +12,24 @@
             --edge: #1e2540;
             --gold: #d4bf6a;
             --gold-dim: #9a8a48;
-            --text: #c8c4bc;
-            --dim: #4a5068;
+            --dim: #6b7394;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             background: var(--night);
             font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-            color: var(--text);
+            color: #fff;
             min-height: 100vh;
             overflow-x: hidden;
         }
 
-        /* ── Stars ── */
         .stars { position: fixed; inset: 0; pointer-events: none; z-index: 0;
             background: radial-gradient(ellipse at 50% 0%, #0e1525 0%, var(--night) 70%); }
         .star { position: absolute; background: #fff; border-radius: 50%; animation: twinkle 4s ease-in-out infinite; }
         @keyframes twinkle { 0%,100% { opacity:.15; } 50% { opacity:.7; } }
 
-        /* ── Layout ── */
         .scene { position: relative; z-index: 1; max-width: 1000px; margin: 0 auto; padding: 24px 16px 40px; }
 
-        /* ── Header ── */
         .header { text-align: center; margin-bottom: 28px; animation: fadeIn .8s ease; }
         .header h1 {
             font-family: 'Playfair Display', serif; font-size: clamp(1.6rem,4.5vw,2.5rem);
@@ -46,14 +42,12 @@
         }
         @keyframes fadeIn { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
 
-        /* ── Building ── */
         .building {
             background: linear-gradient(180deg, var(--edge) 0%, var(--building) 5%, var(--building) 95%, #111520 100%);
             border-radius: 6px 6px 0 0; padding: 22px 16px 28px; position: relative;
             box-shadow: 0 0 80px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.02),
                         -3px 0 0 #12162080, 3px 0 0 #12162080;
         }
-        /* Antenna */
         .building::before {
             content:''; position: absolute; top: -30px; left: 50%; transform: translateX(-50%);
             width: 2px; height: 30px; background: linear-gradient(to top, var(--edge), transparent);
@@ -66,13 +60,8 @@
         }
         @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:.2;} }
 
-        /* ── Grid ── */
-        .grid {
-            display: grid; grid-template-columns: repeat(3, 1fr);
-            gap: 14px;
-        }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 
-        /* ── Paper card ── */
         .paper {
             position: relative; border: 1.5px solid #1e2540; border-radius: 2px;
             overflow: hidden; aspect-ratio: 3/4; background: #0a0d14;
@@ -90,11 +79,10 @@
 
         .paper img {
             width: 100%; height: 100%; object-fit: cover; object-position: top center;
-            display: block; opacity: 0; transition: opacity .5s ease;
+            display: block; opacity: 0; transition: opacity .6s ease;
         }
         .paper img.loaded { opacity: 1; }
 
-        /* Shimmer loader */
         .paper .shimmer {
             position: absolute; inset: 0;
             background: linear-gradient(110deg, #0d1018 30%, #151a28 50%, #0d1018 70%);
@@ -104,18 +92,19 @@
         .paper .shimmer.done { opacity: 0; transition: opacity .4s; pointer-events: none; }
         @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-        /* Hover label */
         .paper .label {
             position: absolute; bottom: 0; left: 0; right: 0;
-            background: linear-gradient(to top, rgba(7,11,20,.92) 0%, rgba(7,11,20,.6) 55%, transparent 100%);
-            padding: 24px 8px 6px; text-align: center;
+            background: linear-gradient(to top, rgba(7,11,20,.94) 0%, rgba(7,11,20,.7) 50%, transparent 100%);
+            padding: 28px 8px 7px; text-align: center;
             opacity: 0; transition: opacity .25s; pointer-events: none;
         }
         .paper:hover .label { opacity: 1; }
-        .label .name { font-family: 'Playfair Display',serif; font-weight: 700; font-size: 12px; color: var(--gold); display: block; }
+        .label .name {
+            font-family: 'Playfair Display',serif; font-weight: 700;
+            font-size: 12px; color: #fff; display: block;
+        }
         .label .region { font-size: 9px; color: var(--dim); display: block; margin-top: 2px; }
 
-        /* ── Footer ── */
         .foot { text-align: center; margin-top: 22px; }
         .foot p { font-size: 10px; color: #3a3f52; letter-spacing: .04em; }
         .foot a {
@@ -127,7 +116,6 @@
         .foot a:hover { background: var(--gold); color: var(--night); border-color: var(--gold); }
         .copy { text-align: center; font-size: 10px; color: #2a2f3e; margin-top: 20px; }
 
-        /* ── Modal ── */
         .modal-bg {
             position: fixed; inset: 0; background: rgba(2,3,8,.95); z-index: 100;
             display: none; align-items: center; justify-content: center;
@@ -136,7 +124,7 @@
         .modal-bg.open { display: flex; }
         .modal {
             background: var(--building); border: 1px solid var(--edge); border-radius: 6px;
-            width: min(94vw,580px); max-height: 92vh;
+            width: min(94vw,700px); max-height: 92vh;
             display: flex; flex-direction: column; overflow: hidden;
             box-shadow: 0 30px 100px rgba(0,0,0,.9);
             animation: modalIn .3s cubic-bezier(.16,1,.3,1);
@@ -146,7 +134,7 @@
             display: flex; align-items: center; justify-content: space-between;
             padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,.04); flex-shrink: 0;
         }
-        .modal-top .title { font-family:'Playfair Display',serif; font-weight:700; color:var(--gold); font-size:14px; }
+        .modal-top .title { font-family:'Playfair Display',serif; font-weight:700; color:#fff; font-size:14px; }
         .modal-top .actions { display:flex; gap:8px; align-items:center; }
         .modal-top a {
             color:var(--gold); text-decoration:none; font-size:11px; font-weight:500;
@@ -161,7 +149,6 @@
         .modal-body { overflow:auto; flex:1; background:#0a0d14; }
         .modal-body img { width:100%; display:block; }
 
-        /* ── Responsive ── */
         @media (max-width:600px) {
             .grid { gap: 8px; }
             .building { padding: 18px 10px 22px; }
@@ -189,13 +176,12 @@
     <div class="copy">© Global News Tower</div>
 </div>
 
-<!-- Modal -->
 <div class="modal-bg" id="modalBg">
     <div class="modal">
         <div class="modal-top">
             <span class="title" id="mTitle"></span>
             <div class="actions">
-                <a id="mLink" href="#" target="_blank">Visit ↗</a>
+                <a id="mLink" href="#" target="_blank">Visit Site ↗</a>
                 <button id="mClose">✕</button>
             </div>
         </div>
@@ -204,78 +190,81 @@
 </div>
 
 <script>
-// ── Date ──
-const now = new Date();
-const yyyy = now.getFullYear();
-const mm = String(now.getMonth()+1).padStart(2,'0');
-const dd = String(now.getDate()).padStart(2,'0');
-document.getElementById('dateStr').textContent =
-    now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}) +
-    ' · Print front pages';
+// Cache-bust twice a day (morning/evening)
+var h = new Date().getHours();
+var half = h < 12 ? 'am' : 'pm';
+var today = new Date().toISOString().slice(0,10);
+var cacheBust = today + '-' + half;
 
-function K(country, slug) {
-    return 'https://img.kiosko.net/'+yyyy+'/'+mm+'/'+dd+'/'+country+'/'+slug+'.750.jpg';
+// Screenshot via thum.io — free, no auth, caches aggressively
+function thumb(url) {
+    return 'https://image.thum.io/get/width/800/crop/1000/noanimate/' + url;
+}
+// Higher res for modal
+function thumbHQ(url) {
+    return 'https://image.thum.io/get/width/1400/crop/1800/noanimate/' + url;
 }
 
-// ── Papers (print only) ──
-const papers = [
-    { name:"South China Morning Post", short:"SCMP", flag:"🇭🇰", region:"Hong Kong", url:"https://www.scmp.com", img:K("cn","south_china_morning_post") },
-    { name:"Financial Times", short:"FT", flag:"🇬🇧", region:"London", url:"https://www.ft.com", img:K("uk","ft_uk") },
-    { name:"The Guardian", short:"Guardian", flag:"🇬🇧", region:"UK", url:"https://www.theguardian.com", img:K("uk","the_guardian") },
+var papers = [
+    { name:"South China Morning Post", short:"SCMP", region:"Hong Kong", url:"https://www.scmp.com" },
+    { name:"Financial Times", short:"FT", region:"London", url:"https://www.ft.com" },
+    { name:"The Guardian", short:"The Guardian", region:"UK", url:"https://www.theguardian.com" },
 
-    { name:"The Times", short:"The Times", flag:"🇬🇧", region:"London", url:"https://www.thetimes.com", img:K("uk","the_times") },
-    { name:"Haaretz", short:"Haaretz", flag:"🇮🇱", region:"Israel", url:"https://www.haaretz.com", img:K("il","il_haaretz") },
-    { name:"The Japan Times", short:"Japan Times", flag:"🇯🇵", region:"Tokyo", url:"https://www.japantimes.co.jp", img:K("jp","japan_times") },
+    { name:"The Times", short:"The Times", region:"London", url:"https://www.thetimes.com" },
+    { name:"Haaretz", short:"Haaretz", region:"Israel", url:"https://www.haaretz.com" },
+    { name:"The Japan Times", short:"Japan Times", region:"Tokyo", url:"https://www.japantimes.co.jp" },
 
-    { name:"The Straits Times", short:"Straits Times", flag:"🇸🇬", region:"Singapore", url:"https://www.straitstimes.com", img:K("sg","straits_times") },
-    { name:"El País", short:"El País", flag:"🇪🇸", region:"Madrid", url:"https://english.elpais.com", img:K("es","elpais") },
-    { name:"Wall Street Journal", short:"WSJ", flag:"🇺🇸", region:"New York", url:"https://www.wsj.com", img:K("us","wsj") },
+    { name:"The Straits Times", short:"Straits Times", region:"Singapore", url:"https://www.straitstimes.com" },
+    { name:"El País English", short:"El País", region:"Madrid", url:"https://english.elpais.com" },
+    { name:"Wall Street Journal", short:"WSJ", region:"New York", url:"https://www.wsj.com" },
 
-    { name:"USA Today", short:"USA Today", flag:"🇺🇸", region:"National", url:"https://www.usatoday.com", img:K("us","usa_today") },
-    { name:"The New York Times", short:"NY Times", flag:"🇺🇸", region:"New York", url:"https://www.nytimes.com", img:K("us","newyork_times") },
-    { name:"Los Angeles Times", short:"LA Times", flag:"🇺🇸", region:"Los Angeles", url:"https://www.latimes.com", img:K("us","la_times") },
+    { name:"USA Today", short:"USA Today", region:"National", url:"https://www.usatoday.com" },
+    { name:"The New York Times", short:"NY Times", region:"New York", url:"https://www.nytimes.com" },
+    { name:"Los Angeles Times", short:"LA Times", region:"Los Angeles", url:"https://www.latimes.com" },
 
-    { name:"The Washington Post", short:"Wash Post", flag:"🇺🇸", region:"D.C.", url:"https://www.washingtonpost.com", img:K("us","washington_post") },
-    { name:"The Boston Globe", short:"Boston Globe", flag:"🇺🇸", region:"Boston", url:"https://www.bostonglobe.com", img:K("us","boston_globe") },
-    { name:"The Daily Telegraph", short:"Telegraph", flag:"🇬🇧", region:"London", url:"https://www.telegraph.co.uk", img:K("uk","the_daily_telegraph") },
+    { name:"The Washington Post", short:"Wash Post", region:"D.C.", url:"https://www.washingtonpost.com" },
+    { name:"The Boston Globe", short:"Boston Globe", region:"Boston", url:"https://www.bostonglobe.com" },
+    { name:"The Daily Telegraph", short:"Telegraph", region:"London", url:"https://www.telegraph.co.uk" },
+
+    { name:"France 24", short:"France 24", region:"Paris", url:"https://www.france24.com/en/" },
+    { name:"Al Jazeera", short:"Al Jazeera", region:"Doha", url:"https://www.aljazeera.com" },
+    { name:"The Moscow Times", short:"Moscow Times", region:"Amsterdam", url:"https://www.themoscowtimes.com" },
 ];
 
-// ── Build grid ──
-const grid = document.getElementById('grid');
+var grid = document.getElementById('grid');
 
-papers.forEach((p, i) => {
-    const card = document.createElement('div');
+papers.forEach(function(p, i) {
+    var card = document.createElement('div');
     card.className = 'paper';
-    card.style.animationDelay = (i * .04) + 's';
+    card.style.animationDelay = (i * 0.04) + 's';
 
-    // Shimmer
-    const shimmer = document.createElement('div');
+    var shimmer = document.createElement('div');
     shimmer.className = 'shimmer';
     card.appendChild(shimmer);
 
-    // Image
-    const img = document.createElement('img');
+    var img = document.createElement('img');
     img.alt = p.name;
-    img.loading = 'lazy';
 
     img.onload = function() {
         img.classList.add('loaded');
         shimmer.classList.add('done');
     };
     img.onerror = function() {
-        // Remove card entirely if image fails
         card.classList.add('hidden');
     };
 
-    // Staggered load
-    setTimeout(() => { img.src = p.img; }, i * 150);
+    setTimeout(function() {
+        img.src = thumb(p.url) + '?c=' + cacheBust;
+    }, i * 200);
+
     card.appendChild(img);
 
-    // Label (on hover)
-    card.innerHTML += `<div class="label"><span class="name">${p.flag} ${p.short}</span><span class="region">${p.region}</span></div>`;
+    var label = document.createElement('div');
+    label.className = 'label';
+    label.innerHTML = '<span class="name">' + p.short + '</span><span class="region">' + p.region + '</span>';
+    card.appendChild(label);
 
-    // Click → expand
-    card.addEventListener('click', () => {
+    card.addEventListener('click', function() {
         if (img.classList.contains('loaded')) {
             openModal(p);
         } else {
@@ -286,25 +275,29 @@ papers.forEach((p, i) => {
     grid.appendChild(card);
 });
 
-// ── Modal ──
+// Modal
 function openModal(p) {
-    document.getElementById('mTitle').textContent = p.flag + ' ' + p.name;
+    document.getElementById('mTitle').textContent = p.name;
     document.getElementById('mLink').href = p.url;
-    document.getElementById('mBody').innerHTML = '<img src="'+p.img+'" alt="'+p.name+'">';
+    document.getElementById('mBody').innerHTML = '<img src="' + thumbHQ(p.url) + '?c=' + cacheBust + '" alt="' + p.name + '">';
     document.getElementById('modalBg').classList.add('open');
 }
 function closeModal() { document.getElementById('modalBg').classList.remove('open'); }
 document.getElementById('mClose').addEventListener('click', closeModal);
-document.getElementById('modalBg').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
-document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeModal(); });
+document.getElementById('modalBg').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeModal(); });
 
-// ── Stars ──
-const sc = document.getElementById('stars');
-for (let i=0; i<60; i++) {
-    const s = document.createElement('div');
+// Date
+document.getElementById('dateStr').textContent =
+    new Date().toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'});
+
+// Stars
+var sc = document.getElementById('stars');
+for (var i = 0; i < 60; i++) {
+    var s = document.createElement('div');
     s.className = 'star';
-    const sz = (Math.random()>.85?1.5:1)+'px';
-    s.style.cssText = 'width:'+sz+';height:'+sz+';left:'+Math.random()*100+'%;top:'+Math.random()*55+'%;opacity:'+(0.1+Math.random()*.4)+';animation-delay:'+Math.random()*4+'s;';
+    var sz = (Math.random() > .85 ? 1.5 : 1) + 'px';
+    s.style.cssText = 'width:'+sz+';height:'+sz+';left:'+Math.random()*100+'%;top:'+Math.random()*55+'%;opacity:'+(0.1+Math.random()*0.4)+';animation-delay:'+Math.random()*4+'s;';
     sc.appendChild(s);
 }
 </script>
