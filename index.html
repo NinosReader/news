@@ -360,12 +360,20 @@ function parseListingHTML(html) {
     return map;
 }
 
-// ── STEP 2: Fetch data & load images in background ──────────────────
-(async function loadImages() {
+// ── STEP 2: Fetch data & load images PROGRESSIVELY ─────────────────
+// Instead of waiting for all 3 index pages before showing anything,
+// each index page is processed the instant it arrives, so newspapers
+// start appearing one batch at a time.
+(function loadImages() {
     var progressMsg = document.getElementById('progressMsg');
     var totalPapers = Object.keys(PAPERS).length;
 
-    // Fetch all listing pages in parallel
+    // Shared counters across all batches
+    var totalFound  = 0;   // how many papers we matched to an image URL
+    var totalLoaded = 0;   // how many images finished loading (or errored)
+    var fetchesDone = 0;   // how many of the 3 index fetches have completed
+    var alreadyMatched = {};  // track which slugs already got an image URL
+
     var pages = [
         BASE + '/us-newspapers/',
         BASE + '/financial-newspapers/',
@@ -374,79 +382,98 @@ function parseListingHTML(html) {
 
     progressMsg.textContent = 'Fetching front page index…';
 
-    var results = await Promise.all(pages.map(function(url) { return fetchWithProxy(url); }));
+    // ── Helper: reveal one card's image ────────────────────────────
+    function loadCardImage(slug, imageUrl) {
+        var card = document.getElementById('card-' + slug);
+        if (!card) return;
 
-    var imageMap = {};
-    results.forEach(function(html) {
-        if (!html) return;
-        var parsed = parseListingHTML(html);
-        Object.keys(parsed).forEach(function(slug) { imageMap[slug] = parsed[slug]; });
-    });
+        var img     = card.querySelector('img');
+        var shimmer = card.querySelector('.shimmer');
+        var ph      = card.querySelector('.placeholder-name');
 
-    // Match slugs to image URLs
-    var matched = {};
-    Object.keys(PAPERS).forEach(function(slug) {
-        var imgUrl = imageMap[slug];
-        if (!imgUrl && ALT_SLUGS[slug]) {
-            for (var i = 0; i < ALT_SLUGS[slug].length; i++) {
-                if (imageMap[ALT_SLUGS[slug][i]]) { imgUrl = imageMap[ALT_SLUGS[slug][i]]; break; }
-            }
-        }
-        if (imgUrl) matched[slug] = imgUrl;
-    });
+        img.onload = function() {
+            img.classList.add('loaded');
+            if (shimmer) shimmer.classList.add('done');
+            if (ph)      ph.classList.add('done');
+            totalLoaded++;
+            updateProgress();
+        };
+        img.onerror = function() {
+            card.classList.add('hidden');
+            totalLoaded++;
+            updateProgress();
+        };
 
-    var matchedSlugs = Object.keys(matched);
-    var total = matchedSlugs.length;
-    var loaded = 0;
-
-    if (total === 0) {
-        progressMsg.textContent = 'Unable to load front pages. Please try refreshing.';
-        return;
+        img.src = imageUrl;
     }
 
-    progressMsg.textContent = 'Loading front pages: 0 / ' + total;
-
-    // Hide cards that have no image match
-    Object.keys(PAPERS).forEach(function(slug) {
-        if (!matched[slug]) {
-            var card = document.getElementById('card-' + slug);
-            if (card) card.classList.add('hidden');
+    // ── Helper: update the progress message & clean up when done ──
+    function updateProgress() {
+        if (totalFound > 0) {
+            progressMsg.textContent = 'Loading front pages: ' + totalLoaded + ' / ' + totalFound;
         }
-    });
 
-    // Fire ALL image loads in parallel — each card reveals the instant its image arrives
-    var promises = matchedSlugs.map(function(slug) {
-        return new Promise(function(resolve) {
-            var card = document.getElementById('card-' + slug);
-            if (!card) { resolve(); return; }
+        // All fetches done AND all images resolved → finish up
+        if (fetchesDone === pages.length && totalLoaded >= totalFound) {
+            // Hide any papers that were never matched across all indexes
+            if (totalFound > 0) {
+                Object.keys(PAPERS).forEach(function(slug) {
+                    if (!alreadyMatched[slug]) {
+                        var card = document.getElementById('card-' + slug);
+                        if (card) card.classList.add('hidden');
+                    }
+                });
+            }
+            progressMsg.style.opacity = '0';
+            setTimeout(function() { progressMsg.remove(); }, 300);
+        }
+    }
 
-            var img = card.querySelector('img');
-            var shimmer = card.querySelector('.shimmer');
-            var ph = card.querySelector('.placeholder-name');
+    // ── Helper: process one index page as soon as it arrives ──────
+    function processIndex(html) {
+        fetchesDone++;
 
-            img.onload = function() {
-                img.classList.add('loaded');
-                if (shimmer) shimmer.classList.add('done');
-                if (ph) ph.classList.add('done');
-                loaded++;
-                progressMsg.textContent = 'Loading front pages: ' + loaded + ' / ' + total;
-                resolve();
-            };
-            img.onerror = function() {
-                card.classList.add('hidden');
-                loaded++;
-                progressMsg.textContent = 'Loading front pages: ' + loaded + ' / ' + total;
-                resolve();
-            };
+        if (!html) {
+            // Even if this fetch failed, check if we're fully done
+            if (fetchesDone === pages.length && totalFound === 0) {
+                progressMsg.textContent = 'Unable to load front pages. Please try refreshing.';
+            } else {
+                updateProgress();
+            }
+            return;
+        }
 
-            img.src = matched[slug];
+        var imageMap = parseListingHTML(html);
+
+        // Match against PAPERS, skipping any slug we already resolved
+        Object.keys(PAPERS).forEach(function(slug) {
+            if (alreadyMatched[slug]) return;  // already loading from an earlier batch
+
+            var imgUrl = imageMap[slug];
+            if (!imgUrl && ALT_SLUGS[slug]) {
+                for (var i = 0; i < ALT_SLUGS[slug].length; i++) {
+                    if (imageMap[ALT_SLUGS[slug][i]]) {
+                        imgUrl = imageMap[ALT_SLUGS[slug][i]];
+                        break;
+                    }
+                }
+            }
+
+            if (imgUrl) {
+                alreadyMatched[slug] = true;
+                totalFound++;
+                loadCardImage(slug, imgUrl);
+            }
         });
+
+        updateProgress();
+    }
+
+    // ── Fire all 3 fetches in parallel; process each on arrival ───
+    pages.forEach(function(url) {
+        fetchWithProxy(url).then(processIndex);
     });
 
-    await Promise.all(promises);
-
-    progressMsg.style.opacity = '0';
-    setTimeout(function() { progressMsg.remove(); }, 300);
 })();
 
 // ── Stars ───────────────────────────────────────────────────────────
