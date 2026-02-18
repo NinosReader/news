@@ -188,7 +188,7 @@
     <div class="foot">
         <a href="https://ninosreader.github.io/index/" target="_blank">Nino's News Reader (circumvent paywalls)</a>
     </div>
-    <div class="copy">© Nino's Global News Tower</div>
+    <div class="copy">&copy; Nino's Global News Tower</div>
 </div>
 
 <div class="modal-bg" id="modalBg">
@@ -196,8 +196,8 @@
         <div class="modal-top">
             <span class="title" id="mTitle"></span>
             <div class="actions">
-                <a id="mLink" href="#" target="_blank">Visit Site ↗</a>
-                <button id="mClose">✕</button>
+                <a id="mLink" href="#" target="_blank">Visit Site &#x2197;</a>
+                <button id="mClose">&#x2715;</button>
             </div>
         </div>
         <div class="modal-body" id="mBody"></div>
@@ -317,7 +317,7 @@ document.getElementById('dateStr').textContent =
     var pm = document.createElement('div');
     pm.className = 'progress-msg';
     pm.id = 'progressMsg';
-    pm.textContent = 'Fetching front pages…';
+    pm.textContent = 'Fetching front pages\u2026';
     building.appendChild(pm);
 })();
 
@@ -334,14 +334,26 @@ document.getElementById('modalBg').addEventListener('click', function(e) { if (e
 document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeModal(); });
 
 // ── Network helpers ─────────────────────────────────────────────────
-async function fetchWithProxy(url) {
-    for (var i = 0; i < PROXIES.length; i++) {
-        try {
-            var resp = await fetch(PROXIES[i] + encodeURIComponent(url));
-            if (resp.ok) return await resp.text();
-        } catch(e) {}
+
+// Race ALL proxies simultaneously for a single URL.
+// Returns the first successful response, cancels the rest.
+async function fetchRacing(url) {
+    var controller = new AbortController();
+    var promises = PROXIES.map(function(proxy) {
+        return fetch(proxy + encodeURIComponent(url), { signal: controller.signal })
+            .then(function(resp) {
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                return resp.text();
+            });
+    });
+
+    try {
+        var result = await Promise.any(promises);
+        controller.abort(); // cancel slower requests
+        return result;
+    } catch(e) {
+        return null;
     }
-    return null;
 }
 
 function parseListingHTML(html) {
@@ -354,25 +366,30 @@ function parseListingHTML(html) {
         var img = a.querySelector('img[src*="/t/"]');
         if (img) {
             var src = img.getAttribute('src');
-            if (src && src.startsWith('/t/')) map[slug] = BASE + src;
+            if (src && src.startsWith('/t/')) {
+                // Use @2x version for better quality (600x800 instead of 300x400)
+                var src2x = src.replace('.webp', '@2x.webp');
+                map[slug] = BASE + src2x;
+            }
         }
     });
     return map;
 }
 
-// ── STEP 2: Fetch data & load images PROGRESSIVELY ─────────────────
-// Instead of waiting for all 3 index pages before showing anything,
-// each index page is processed the instant it arrives, so newspapers
-// start appearing one batch at a time.
+// ── STEP 2: Fetch index pages & load images PROGRESSIVELY ──────────
+// KEY CHANGE: Instead of waiting for all 3 index pages with Promise.all,
+// we process each index page THE INSTANT it arrives. As soon as one
+// index returns, we match its newspapers and start loading their images
+// immediately — you see the first batch of papers much sooner.
+//
+// Also: fetchRacing races all 3 CORS proxies simultaneously per request,
+// so the fastest proxy wins instead of trying them one by one.
 (function loadImages() {
     var progressMsg = document.getElementById('progressMsg');
     var totalPapers = Object.keys(PAPERS).length;
-
-    // Shared counters across all batches
-    var totalFound  = 0;   // how many papers we matched to an image URL
-    var totalLoaded = 0;   // how many images finished loading (or errored)
-    var fetchesDone = 0;   // how many of the 3 index fetches have completed
-    var alreadyMatched = {};  // track which slugs already got an image URL
+    var found = 0;
+    var revealed = {};  // track which slugs already have images loading
+    var indexesDone = 0;
 
     var pages = [
         BASE + '/us-newspapers/',
@@ -380,74 +397,46 @@ function parseListingHTML(html) {
         BASE + '/world-newspapers/'
     ];
 
-    progressMsg.textContent = 'Fetching front page index…';
+    progressMsg.textContent = 'Fetching front page indexes\u2026';
 
-    // ── Helper: reveal one card's image ────────────────────────────
-    function loadCardImage(slug, imageUrl) {
+    // Reveal a single card with its image URL. Returns a promise.
+    function revealCard(slug, imageUrl) {
+        if (revealed[slug]) return Promise.resolve(); // already loading
+        revealed[slug] = true;
+
         var card = document.getElementById('card-' + slug);
-        if (!card) return;
+        if (!card) return Promise.resolve();
 
         var img     = card.querySelector('img');
         var shimmer = card.querySelector('.shimmer');
         var ph      = card.querySelector('.placeholder-name');
 
-        img.onload = function() {
-            img.classList.add('loaded');
-            if (shimmer) shimmer.classList.add('done');
-            if (ph)      ph.classList.add('done');
-            totalLoaded++;
-            updateProgress();
-        };
-        img.onerror = function() {
-            card.classList.add('hidden');
-            totalLoaded++;
-            updateProgress();
-        };
-
-        img.src = imageUrl;
+        return new Promise(function(resolve) {
+            img.onload = function() {
+                img.classList.add('loaded');
+                if (shimmer) shimmer.classList.add('done');
+                if (ph)      ph.classList.add('done');
+                found++;
+                progressMsg.textContent = 'Loading front pages: ' + found + ' / ' + totalPapers;
+                resolve();
+            };
+            img.onerror = function() {
+                card.classList.add('hidden');
+                resolve();
+            };
+            img.src = imageUrl;
+        });
     }
 
-    // ── Helper: update the progress message & clean up when done ──
-    function updateProgress() {
-        if (totalFound > 0) {
-            progressMsg.textContent = 'Loading front pages: ' + totalLoaded + ' / ' + totalFound;
-        }
-
-        // All fetches done AND all images resolved → finish up
-        if (fetchesDone === pages.length && totalLoaded >= totalFound) {
-            // Hide any papers that were never matched across all indexes
-            if (totalFound > 0) {
-                Object.keys(PAPERS).forEach(function(slug) {
-                    if (!alreadyMatched[slug]) {
-                        var card = document.getElementById('card-' + slug);
-                        if (card) card.classList.add('hidden');
-                    }
-                });
-            }
-            progressMsg.style.opacity = '0';
-            setTimeout(function() { progressMsg.remove(); }, 300);
-        }
-    }
-
-    // ── Helper: process one index page as soon as it arrives ──────
+    // Process one index page: parse it, match newspapers, reveal cards
     function processIndex(html) {
-        fetchesDone++;
-
-        if (!html) {
-            // Even if this fetch failed, check if we're fully done
-            if (fetchesDone === pages.length && totalFound === 0) {
-                progressMsg.textContent = 'Unable to load front pages. Please try refreshing.';
-            } else {
-                updateProgress();
-            }
-            return;
-        }
+        if (!html) return Promise.resolve();
 
         var imageMap = parseListingHTML(html);
+        var imagePromises = [];
 
-        // Match against PAPERS, skipping any slug we already resolved
         Object.keys(PAPERS).forEach(function(slug) {
-            if (alreadyMatched[slug]) return;  // already loading from an earlier batch
+            if (revealed[slug]) return; // already handled by a previous index
 
             var imgUrl = imageMap[slug];
             if (!imgUrl && ALT_SLUGS[slug]) {
@@ -460,18 +449,35 @@ function parseListingHTML(html) {
             }
 
             if (imgUrl) {
-                alreadyMatched[slug] = true;
-                totalFound++;
-                loadCardImage(slug, imgUrl);
+                imagePromises.push(revealCard(slug, imgUrl));
             }
         });
 
-        updateProgress();
+        return Promise.all(imagePromises);
     }
 
-    // ── Fire all 3 fetches in parallel; process each on arrival ───
-    pages.forEach(function(url) {
-        fetchWithProxy(url).then(processIndex);
+    // Fire all 3 index fetches in parallel, but process each one
+    // THE INSTANT it arrives (not waiting for the others).
+    var allDone = pages.map(function(pageUrl) {
+        return fetchRacing(pageUrl)
+            .then(function(html) {
+                indexesDone++;
+                progressMsg.textContent = 'Processing index ' + indexesDone + '/3\u2026';
+                return processIndex(html);
+            });
+    });
+
+    // Once ALL indexes are fetched and ALL images loaded/failed,
+    // hide any remaining unmatched cards and remove progress bar.
+    Promise.all(allDone).then(function() {
+        Object.keys(PAPERS).forEach(function(slug) {
+            if (!revealed[slug]) {
+                var card = document.getElementById('card-' + slug);
+                if (card) card.classList.add('hidden');
+            }
+        });
+        progressMsg.style.opacity = '0';
+        setTimeout(function() { progressMsg.remove(); }, 300);
     });
 
 })();
