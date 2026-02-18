@@ -125,7 +125,7 @@
         }
         .section-label:first-child { border-top: none; padding-top: 0; }
 
-        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 8px; }
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 8px; }
 
         .paper {
             position: relative; border: 1.5px solid #1e2540; border-radius: 2px;
@@ -185,13 +185,30 @@
 
         .foot { text-align: center; margin-top: 22px; }
         .foot p { font-size: 10px; color: #fff; letter-spacing: .04em; }
-        .foot a {
-            display: inline-block; margin-top: 12px;
-            color: #fff; text-decoration: none; font-size: 13px;
-            background: rgba(21,26,40,.8); padding: 8px 18px; border-radius: 5px;
-            border: 1px solid var(--edge); transition: all .3s;
+        .foot .btn {
+            display: inline-block; margin-top: 14px;
+            text-decoration: none; font-size: 14px; font-weight: 500;
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: #fff;
+            background: rgba(255,255,255,.06);
+            padding: 12px 32px; border-radius: 8px;
+            border: 1px solid rgba(255,255,255,.15);
+            cursor: pointer;
+            letter-spacing: .03em;
+            backdrop-filter: blur(4px);
+            transition: all .3s ease;
         }
-        .foot a:hover { background: #fff; color: var(--night); border-color: #fff; }
+        .foot .btn:hover {
+            background: #fff;
+            color: var(--night);
+            border-color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(255,255,255,.12), 0 2px 8px rgba(0,0,0,.3);
+        }
+        .foot .btn:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
 
         .copy { text-align: center; font-size: 10px; color: rgba(255,255,255,.5); margin-top: 20px; }
 
@@ -247,7 +264,7 @@
         <div class="progress-wrap" id="progressWrap">
             <div class="progress-status">
                 <span id="progressLabel">Fetching front pages&hellip;</span>
-                <span class="count" id="progressCount">0 / 15</span>
+                <span class="count" id="progressCount">0 / 14</span>
             </div>
             <div class="progress-track fetching" id="progressTrack">
                 <div class="progress-fill" id="progressFill"></div>
@@ -260,7 +277,7 @@
     </div>
 
     <div class="foot">
-        <a href="https://ninosreader.github.io/index/" target="_blank">Nino's News Reader (circumvent paywalls)</a>
+        <a class="btn" href="https://ninosreader.github.io/index/" target="_blank">Nino's News Reader (circumvent paywalls)</a>
     </div>
     <div class="copy">&copy; Nino's Global News Tower</div>
 </div>
@@ -291,12 +308,11 @@ var PAPERS = {
     'financial-times':         { name:'Financial Times',         region:'London',      url:'https://www.ft.com',                  section:'United Kingdom & Europe' },
     'the-guardian':            { name:'The Guardian',            region:'London',      url:'https://www.theguardian.com',         section:'United Kingdom & Europe' },
     'le-monde':                { name:'Le Monde',                region:'Paris',       url:'https://www.lemonde.fr',              section:'United Kingdom & Europe' },
+    'el-pais':                 { name:'El Pa\u00eds',              region:'Madrid',      url:'https://elpais.com',                  section:'United Kingdom & Europe' },
 
     'the-japan-times':         { name:'The Japan Times',         region:'Tokyo',       url:'https://www.japantimes.co.jp',        section:'Asia & World' },
     'south-china-morning-post':{ name:'South China Morning Post',region:'Hong Kong',   url:'https://www.scmp.com',                section:'Asia & World' },
     'the-straits-times':       { name:'The Straits Times',       region:'Singapore',   url:'https://www.straitstimes.com',        section:'Asia & World' },
-    'haaretz':                 { name:'Haaretz',                 region:'Tel Aviv',    url:'https://www.haaretz.com',             section:'Asia & World' },
-    'the-times-of-india':      { name:'The Times of India',      region:'Mumbai',      url:'https://timesofindia.indiatimes.com', section:'Asia & World' },
     'the-sydney-morning-herald':{ name:'Sydney Morning Herald',  region:'Sydney',      url:'https://www.smh.com.au',              section:'Asia & World' },
 };
 
@@ -313,8 +329,6 @@ var ALT_SLUGS = {
     'the-guardian': ['the-guardian', 'the-guardian-uk', 'the-guardian-usa'],
     'south-china-morning-post': ['south-china-morning-post', 'scmp'],
     'the-straits-times': ['the-straits-times', 'straits-times'],
-    'haaretz': ['haaretz', 'ha-aretz'],
-    'the-times-of-india': ['the-times-of-india', 'times-of-india'],
     'the-sydney-morning-herald': ['the-sydney-morning-herald', 'sydney-morning-herald'],
     'the-washington-times': ['the-washington-times', 'washington-times'],
 };
