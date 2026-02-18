@@ -42,6 +42,70 @@
         }
         @keyframes fadeIn { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
 
+        /* ── Progress bar ─────────────────────────────────────────── */
+        .progress-wrap {
+            margin-top: 16px;
+            transition: opacity .5s ease, transform .5s ease;
+        }
+        .progress-wrap.done {
+            opacity: 0;
+            transform: translateY(-6px);
+            pointer-events: none;
+        }
+        .progress-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 11px;
+            letter-spacing: .03em;
+            color: rgba(255,255,255,.5);
+        }
+        .progress-status .count {
+            color: rgba(255,255,255,.7);
+            font-weight: 500;
+        }
+        .progress-track {
+            width: 100%;
+            height: 4px;
+            background: rgba(255,255,255,.06);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 4px;
+            background: linear-gradient(90deg, var(--gold-dim), var(--gold));
+            transition: width .4s cubic-bezier(.22,1,.36,1);
+            position: relative;
+        }
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0; right: 0; bottom: 0;
+            width: 30px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,.3));
+            border-radius: 0 4px 4px 0;
+            opacity: 1;
+            transition: opacity .3s;
+        }
+        .progress-wrap.done .progress-fill::after { opacity: 0; }
+
+        /* Indeterminate shimmer on the track while fetching indexes */
+        .progress-track.fetching::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent 0%, rgba(212,191,106,.15) 40%, rgba(212,191,106,.25) 50%, rgba(212,191,106,.15) 60%, transparent 100%);
+            background-size: 200% 100%;
+            animation: barShimmer 1.5s ease-in-out infinite;
+            border-radius: 4px;
+            z-index: 0;
+        }
+        @keyframes barShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
         .building {
             background: linear-gradient(180deg, var(--edge) 0%, var(--building) 5%, var(--building) 95%, #111520 100%);
             border-radius: 6px 6px 0 0; padding: 22px 16px 28px; position: relative;
@@ -91,7 +155,6 @@
         .paper .shimmer.done { opacity: 0; transition: opacity .3s; pointer-events: none; }
         @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-        /* Paper name overlay shown on shimmer cards before image loads */
         .paper .placeholder-name {
             position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
             font-family: 'Playfair Display', serif; font-size: 11px; font-weight: 700;
@@ -179,6 +242,17 @@
     <div class="header">
         <h1>Nino's Global News Tower</h1>
         <div class="sub" id="dateStr"></div>
+
+        <!-- ── Progress bar ── -->
+        <div class="progress-wrap" id="progressWrap">
+            <div class="progress-status">
+                <span id="progressLabel">Fetching front pages&hellip;</span>
+                <span class="count" id="progressCount">0 / 15</span>
+            </div>
+            <div class="progress-track fetching" id="progressTrack">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
     </div>
 
     <div class="building" id="building">
@@ -245,6 +319,29 @@ var ALT_SLUGS = {
     'the-washington-times': ['the-washington-times', 'washington-times'],
 };
 
+// ── Progress bar references ─────────────────────────────────────────
+var progressWrap  = document.getElementById('progressWrap');
+var progressLabel = document.getElementById('progressLabel');
+var progressCount = document.getElementById('progressCount');
+var progressTrack = document.getElementById('progressTrack');
+var progressFill  = document.getElementById('progressFill');
+var totalPapers   = Object.keys(PAPERS).length;
+
+function updateProgress(loaded, statusText) {
+    var pct = Math.round((loaded / totalPapers) * 100);
+    progressFill.style.width = pct + '%';
+    progressCount.textContent = loaded + ' / ' + totalPapers;
+    if (statusText) progressLabel.textContent = statusText;
+}
+
+function finishProgress() {
+    progressFill.style.width = '100%';
+    progressLabel.textContent = 'All front pages loaded';
+    progressCount.textContent = totalPapers + ' / ' + totalPapers;
+    progressTrack.classList.remove('fetching');
+    setTimeout(function() { progressWrap.classList.add('done'); }, 1200);
+}
+
 // ── Date ────────────────────────────────────────────────────────────
 document.getElementById('dateStr').textContent =
     new Date().toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'});
@@ -278,25 +375,21 @@ document.getElementById('dateStr').textContent =
             card.className = 'paper';
             card.id = 'card-' + slug;
 
-            // Shimmer
             var shimmer = document.createElement('div');
             shimmer.className = 'shimmer';
             card.appendChild(shimmer);
 
-            // Placeholder name visible while loading
             var ph = document.createElement('div');
             ph.className = 'placeholder-name';
             ph.textContent = paper.name;
             card.appendChild(ph);
 
-            // Image (src set later)
             var img = document.createElement('img');
             img.alt = paper.name;
             img.loading = 'eager';
             img.decoding = 'async';
             card.appendChild(img);
 
-            // Hover label
             var lbl = document.createElement('div');
             lbl.className = 'label';
             lbl.innerHTML = '<span class="name">' + paper.name + '</span><span class="region">' + paper.region + '</span>';
@@ -312,13 +405,6 @@ document.getElementById('dateStr').textContent =
 
         building.appendChild(grid);
     });
-
-    // Progress message
-    var pm = document.createElement('div');
-    pm.className = 'progress-msg';
-    pm.id = 'progressMsg';
-    pm.textContent = 'Fetching front pages\u2026';
-    building.appendChild(pm);
 })();
 
 // ── Modal ───────────────────────────────────────────────────────────
@@ -334,9 +420,6 @@ document.getElementById('modalBg').addEventListener('click', function(e) { if (e
 document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeModal(); });
 
 // ── Network helpers ─────────────────────────────────────────────────
-
-// Race ALL proxies simultaneously for a single URL.
-// Returns the first successful response, cancels the rest.
 async function fetchRacing(url) {
     var controller = new AbortController();
     var promises = PROXIES.map(function(proxy) {
@@ -349,7 +432,7 @@ async function fetchRacing(url) {
 
     try {
         var result = await Promise.any(promises);
-        controller.abort(); // cancel slower requests
+        controller.abort();
         return result;
     } catch(e) {
         return null;
@@ -367,7 +450,6 @@ function parseListingHTML(html) {
         if (img) {
             var src = img.getAttribute('src');
             if (src && src.startsWith('/t/')) {
-                // Use @2x version for better quality (600x800 instead of 300x400)
                 var src2x = src.replace('.webp', '@2x.webp');
                 map[slug] = BASE + src2x;
             }
@@ -377,18 +459,9 @@ function parseListingHTML(html) {
 }
 
 // ── STEP 2: Fetch index pages & load images PROGRESSIVELY ──────────
-// KEY CHANGE: Instead of waiting for all 3 index pages with Promise.all,
-// we process each index page THE INSTANT it arrives. As soon as one
-// index returns, we match its newspapers and start loading their images
-// immediately — you see the first batch of papers much sooner.
-//
-// Also: fetchRacing races all 3 CORS proxies simultaneously per request,
-// so the fastest proxy wins instead of trying them one by one.
 (function loadImages() {
-    var progressMsg = document.getElementById('progressMsg');
-    var totalPapers = Object.keys(PAPERS).length;
     var found = 0;
-    var revealed = {};  // track which slugs already have images loading
+    var revealed = {};
     var indexesDone = 0;
 
     var pages = [
@@ -397,11 +470,10 @@ function parseListingHTML(html) {
         BASE + '/world-newspapers/'
     ];
 
-    progressMsg.textContent = 'Fetching front page indexes\u2026';
+    updateProgress(0, 'Fetching front page indexes\u2026');
 
-    // Reveal a single card with its image URL. Returns a promise.
     function revealCard(slug, imageUrl) {
-        if (revealed[slug]) return Promise.resolve(); // already loading
+        if (revealed[slug]) return Promise.resolve();
         revealed[slug] = true;
 
         var card = document.getElementById('card-' + slug);
@@ -417,18 +489,21 @@ function parseListingHTML(html) {
                 if (shimmer) shimmer.classList.add('done');
                 if (ph)      ph.classList.add('done');
                 found++;
-                progressMsg.textContent = 'Loading front pages: ' + found + ' / ' + totalPapers;
+                updateProgress(found, 'Loading front pages\u2026');
+                // Remove fetching shimmer once first image arrives
+                progressTrack.classList.remove('fetching');
                 resolve();
             };
             img.onerror = function() {
                 card.classList.add('hidden');
+                found++;
+                updateProgress(found, 'Loading front pages\u2026');
                 resolve();
             };
             img.src = imageUrl;
         });
     }
 
-    // Process one index page: parse it, match newspapers, reveal cards
     function processIndex(html) {
         if (!html) return Promise.resolve();
 
@@ -436,7 +511,7 @@ function parseListingHTML(html) {
         var imagePromises = [];
 
         Object.keys(PAPERS).forEach(function(slug) {
-            if (revealed[slug]) return; // already handled by a previous index
+            if (revealed[slug]) return;
 
             var imgUrl = imageMap[slug];
             if (!imgUrl && ALT_SLUGS[slug]) {
@@ -456,19 +531,15 @@ function parseListingHTML(html) {
         return Promise.all(imagePromises);
     }
 
-    // Fire all 3 index fetches in parallel, but process each one
-    // THE INSTANT it arrives (not waiting for the others).
     var allDone = pages.map(function(pageUrl) {
         return fetchRacing(pageUrl)
             .then(function(html) {
                 indexesDone++;
-                progressMsg.textContent = 'Processing index ' + indexesDone + '/3\u2026';
+                updateProgress(found, 'Processing index ' + indexesDone + '/3\u2026');
                 return processIndex(html);
             });
     });
 
-    // Once ALL indexes are fetched and ALL images loaded/failed,
-    // hide any remaining unmatched cards and remove progress bar.
     Promise.all(allDone).then(function() {
         Object.keys(PAPERS).forEach(function(slug) {
             if (!revealed[slug]) {
@@ -476,8 +547,7 @@ function parseListingHTML(html) {
                 if (card) card.classList.add('hidden');
             }
         });
-        progressMsg.style.opacity = '0';
-        setTimeout(function() { progressMsg.remove(); }, 300);
+        finishProgress();
     });
 
 })();
